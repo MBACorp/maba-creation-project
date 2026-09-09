@@ -4,6 +4,7 @@ import Icon from '@/components/ui/icon';
 import DownloadCard from '@/components/download/DownloadCard';
 import ReleaseHistory from '@/components/download/ReleaseHistory';
 import PublishDialog from '@/components/download/PublishDialog';
+import BuildGuide from '@/components/download/BuildGuide';
 import {
   RELEASES_URL,
   ReleasesData,
@@ -120,6 +121,8 @@ const Download = () => {
         </section>
 
         <ReleaseHistory releases={data.releases} />
+
+        <BuildGuide />
 
         <section className="mt-14 rounded-xl border border-border bg-card p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
