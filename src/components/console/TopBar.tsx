@@ -20,14 +20,6 @@ const TopBar = ({ crumb, onInvite }: TopBarProps) => {
         <span className="text-foreground">{crumb}</span>
       </nav>
 
-      <div className="flex items-center gap-2">
-      <a
-        href="/download"
-        className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
-      >
-        <Icon name="Download" size={14} />
-        <span className="hidden sm:inline">Скачать приложение</span>
-      </a>
       <button
         onClick={onInvite}
         className="flex items-center gap-2 rounded-lg border border-primary/40 px-3 py-1.5 text-[13px] font-medium text-primary transition-colors hover:bg-primary/10"
@@ -36,7 +28,6 @@ const TopBar = ({ crumb, onInvite }: TopBarProps) => {
         <span className="hidden sm:inline">Пригласи и получи 150$</span>
         <span className="sm:hidden">150$</span>
       </button>
-      </div>
     </header>
   );
 };
