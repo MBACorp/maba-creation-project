@@ -15,7 +15,7 @@ const TopBar = ({ crumb, onInvite }: TopBarProps) => {
       </div>
 
       <nav className="hidden items-center gap-2 text-[13px] text-muted-foreground sm:flex">
-        <span>aleksandrgricov123</span>
+        <span>email</span>
         <Icon name="ChevronRight" size={13} />
         <span className="text-foreground">{crumb}</span>
       </nav>
