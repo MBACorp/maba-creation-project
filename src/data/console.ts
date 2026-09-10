@@ -1,5 +1,7 @@
 export type ProfileStatus = 'running' | 'ready' | 'paused';
 
+import { FingerprintOverride } from './fingerprint';
+
 export interface Profile {
   id: string;
   name: string;
@@ -11,6 +13,7 @@ export interface Profile {
   ip: string;
   tags: string[];
   lastRun: string;
+  fingerprint?: FingerprintOverride;
 }
 
 export const STATUS_LABEL: Record<ProfileStatus, string> = {

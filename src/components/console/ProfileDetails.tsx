@@ -1,17 +1,25 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Profile, STATUS_LABEL } from '@/data/console';
+import { FingerprintOverride } from '@/data/fingerprint';
+import FingerprintEditor from './FingerprintEditor';
 import Icon from '@/components/ui/icon';
 
 interface ProfileDetailsProps {
   profile: Profile | null;
   onOpenChange: (v: boolean) => void;
   onToggle: (id: string) => void;
+  onFingerprint: (id: string, fp: FingerprintOverride) => void;
 }
 
-const ProfileDetails = ({ profile, onOpenChange, onToggle }: ProfileDetailsProps) => {
+const ProfileDetails = ({
+  profile,
+  onOpenChange,
+  onToggle,
+  onFingerprint,
+}: ProfileDetailsProps) => {
   return (
     <Sheet open={!!profile} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full border-border bg-card sm:max-w-md">
+      <SheetContent className="w-full overflow-y-auto border-border bg-card scroll-thin sm:max-w-md">
         {profile && (
           <>
             <SheetHeader>
@@ -53,9 +61,14 @@ const ProfileDetails = ({ profile, onOpenChange, onToggle }: ProfileDetailsProps
               </div>
             )}
 
+            <FingerprintEditor
+              value={profile.fingerprint}
+              onSave={(fp) => onFingerprint(profile.id, fp)}
+            />
+
             <button
               onClick={() => onToggle(profile.id)}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 font-head text-[14px] font-bold text-primary-foreground transition-opacity hover:opacity-90"
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 font-head text-[14px] font-bold text-primary-foreground transition-opacity hover:opacity-90"
             >
               <Icon name={profile.status === 'running' ? 'Square' : 'Play'} size={15} />
               {profile.status === 'running' ? 'Остановить профиль' : 'Запустить профиль'}

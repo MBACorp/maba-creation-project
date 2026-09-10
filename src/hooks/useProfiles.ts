@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Profile, profilesSeed } from '@/data/console';
+import { FingerprintOverride, countOverrides } from '@/data/fingerprint';
 import { bridge, isDesktop } from '@/lib/desktop';
 
 export const useProfiles = (limit: number) => {
@@ -104,6 +105,29 @@ export const useProfiles = (limit: number) => {
     [profiles.length, limit],
   );
 
+  const setFingerprint = useCallback(
+    async (id: string, fp: FingerprintOverride) => {
+      let updated: Profile | undefined;
+      setProfiles((prev) =>
+        prev.map((p) => {
+          if (p.id !== id) return p;
+          updated = { ...p, fingerprint: fp };
+          return updated;
+        }),
+      );
+      const api = bridge();
+      if (api && updated) await api.saveProfile(updated);
+
+      const count = countOverrides(fp);
+      toast(count ? 'Отпечаток сохранён' : 'Отпечаток сброшен на автоматический', {
+        description: count
+          ? `${count} значений задано вручную. Применится при следующем запуске.`
+          : 'Значения снова подбираются автоматически.',
+      });
+    },
+    [],
+  );
+
   const deleteProfile = useCallback(async (id: string) => {
     const api = bridge();
     if (api) await api.deleteProfile(id);
@@ -111,5 +135,14 @@ export const useProfiles = (limit: number) => {
     toast('Профиль удалён');
   }, []);
 
-  return { profiles, busy, desktop, toggleProfile, createProfile, deleteProfile, reload };
+  return {
+    profiles,
+    busy,
+    desktop,
+    toggleProfile,
+    createProfile,
+    deleteProfile,
+    setFingerprint,
+    reload,
+  };
 };

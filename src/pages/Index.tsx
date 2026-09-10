@@ -24,7 +24,8 @@ const SECTION_META: Record<SectionId, { eyebrow: string; title: string }> = {
 const LIMIT = 10;
 
 const Index = () => {
-  const { profiles, busy, desktop, toggleProfile, createProfile } = useProfiles(LIMIT);
+  const { profiles, busy, desktop, toggleProfile, createProfile, setFingerprint } =
+    useProfiles(LIMIT);
   const [section, setSection] = useState<SectionId>('profiles');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterId>('all');
@@ -118,6 +119,7 @@ const Index = () => {
         profile={activeDetails}
         onOpenChange={(v) => !v && setDetails(null)}
         onToggle={toggleProfile}
+        onFingerprint={setFingerprint}
       />
     </div>
   );
