@@ -11,12 +11,18 @@ import {
   OS_OPTIONS,
   SCREEN_OPTIONS,
   TIMEZONE_OPTIONS,
+  geoToFingerprint,
+  tzLabel,
+  localeLabel,
   specOptions,
 } from '@/data/fingerprint';
 
 interface FingerprintEditorProps {
   value?: FingerprintOverride;
   onSave: (fp: FingerprintOverride) => void;
+  /* Страна и город прокси — чтобы поймать несовпадение с настройками */
+  proxyCountry?: string;
+  proxyCity?: string;
 }
 
 type Draft = Record<string, string>;
@@ -71,7 +77,7 @@ const Field = ({
   </label>
 );
 
-const FingerprintEditor = ({ value, onSave }: FingerprintEditorProps) => {
+const FingerprintEditor = ({ value, onSave, proxyCountry, proxyCity }: FingerprintEditorProps) => {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(toDraft(value));
 
@@ -121,6 +127,21 @@ const FingerprintEditor = ({ value, onSave }: FingerprintEditorProps) => {
   const deviceLabel = GPU_OPTIONS.find((g) => g.value === draft.gpu && g.value !== AUTO)?.label;
 
   const changed = Object.values(draft).filter((v) => v !== AUTO).length;
+
+  /*
+   * Несовпадение страны прокси с часовым поясом или языком — самая частая
+   * причина блокировок: немецкий IP с московским временем виден сразу.
+   */
+  const expected = proxyCountry
+    ? geoToFingerprint({ country: proxyCountry, city: proxyCity })
+    : {};
+  const tzConflict = Boolean(
+    expected.timezone && draft.timezone !== AUTO && draft.timezone !== expected.timezone,
+  );
+  const localeConflict = Boolean(
+    expected.locale && draft.locale !== AUTO && draft.locale !== expected.locale,
+  );
+  const conflict = tzConflict || localeConflict;
   const geoAuto = Boolean(
     value?.geoAuto &&
       draft.timezone === (value.timezone || AUTO) &&
@@ -198,8 +219,37 @@ const FingerprintEditor = ({ value, onSave }: FingerprintEditorProps) => {
               options={screenOptions}
               onChange={(v) => set('screen', v)}
             />
-            <div className={geoAuto ? 'rounded-lg border border-primary/25 bg-primary/5 p-3' : undefined}>
-              {geoAuto && (
+            <div
+              className={
+                conflict
+                  ? 'rounded-lg border border-destructive/40 bg-destructive/5 p-3'
+                  : geoAuto
+                    ? 'rounded-lg border border-primary/25 bg-primary/5 p-3'
+                    : undefined
+              }
+            >
+              {conflict && (
+                <div className="mb-3 space-y-2">
+                  <p className="flex items-start gap-1.5 text-[11px] font-semibold leading-relaxed text-destructive">
+                    <Icon name="TriangleAlert" fallback="AlertTriangle" size={12} className="mt-0.5 shrink-0" />
+                    Настройки не совпадают со страной прокси — по этому чаще всего блокируют
+                  </p>
+                  <p className="pl-[18px] text-[11px] leading-relaxed text-muted-foreground">
+                    {tzConflict && `Часовой пояс: выбран ${tzLabel(draft.timezone)}, у прокси ${tzLabel(expected.timezone)}. `}
+                    {localeConflict && `Язык: выбран ${localeLabel(draft.locale)}, ожидается ${localeLabel(expected.locale)}.`}
+                  </p>
+                  <button
+                    onClick={() => {
+                      if (tzConflict) set('timezone', AUTO);
+                      if (localeConflict) set('locale', AUTO);
+                    }}
+                    className="ml-[18px] rounded-md bg-destructive px-2.5 py-1 text-[11px] font-semibold text-destructive-foreground"
+                  >
+                    Подстроить под прокси
+                  </button>
+                </div>
+              )}
+              {geoAuto && !conflict && (
                 <p className="mb-3 flex items-start gap-1.5 text-[11px] leading-relaxed text-primary">
                   <Icon name="Wand2" fallback="Sparkles" size={12} className="mt-0.5 shrink-0" />
                   Подобрано автоматически по стране прокси. Измените — значения станут ручными.

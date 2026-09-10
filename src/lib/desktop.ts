@@ -102,6 +102,7 @@ interface MbaBridge {
     city?: string;
     provider?: string;
     latency?: number;
+    timezone?: string;
     kind?: string;
     leaking?: boolean;
     error?: string;

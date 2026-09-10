@@ -148,6 +148,8 @@ const ProfileDetails = ({
             <FingerprintEditor
               value={profile.fingerprint}
               onSave={(fp) => onFingerprint(profile.id, fp)}
+              proxyCountry={profile.country}
+              proxyCity={profile.city}
             />
 
             <FingerprintAudit

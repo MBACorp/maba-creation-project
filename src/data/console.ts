@@ -10,6 +10,8 @@ export interface Profile {
   note: string;
   proxyType: string;
   country: string;
+  /* Город прокси: нужен для точного часового пояса в больших странах */
+  city?: string;
   flag: string;
   ip: string;
   tags: string[];

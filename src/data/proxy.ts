@@ -172,9 +172,11 @@ const checkLocally = async (proxies: ProxyRecord[]): Promise<CheckResult[]> => {
           id: p.id,
           ok: r.ok,
           ip: r.ip,
-          country: r.country,
+          /* Справочники работают по двухбуквенному коду, а не по названию */
+          country: r.countryCode || r.country,
           city: r.city,
           org: r.provider,
+          timezone: r.timezone,
           latency: r.latency,
           error: r.error,
         } as CheckResult;
