@@ -13,7 +13,10 @@ import ProfileDetails from '@/components/console/ProfileDetails';
 import { Profile, SectionId } from '@/data/console';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useProxies } from '@/hooks/useProxies';
+import { useFolders } from '@/hooks/useFolders';
 import { ProxyRecord } from '@/data/proxy';
+import { ALL_FOLDER, NO_FOLDER } from '@/data/folders';
+import FolderList from '@/components/console/FolderList';
 
 const SECTION_META: Record<SectionId, { eyebrow: string; title: string }> = {
   profiles: { eyebrow: 'Профили браузера', title: 'Все профили' },
@@ -48,31 +51,72 @@ const Index = () => {
     setFingerprint,
     setProxy,
     syncGeo,
+    moveToFolder,
+    setTags,
   } = useProfiles(LIMIT, proxies);
 
   syncGeoRef.current = syncGeo;
+
+  const { folders, createFolder, renameFolder, recolorFolder, deleteFolder } =
+    useFolders();
   const [section, setSection] = useState<SectionId>('profiles');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterId>('all');
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [details, setDetails] = useState<Profile | null>(null);
+  const [folder, setFolder] = useState<string>(ALL_FOLDER);
+  const [tag, setTag] = useState<string | undefined>();
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return profiles.filter((p) => {
       const matchQuery =
-        !q || p.name.toLowerCase().includes(q) || p.ip.toLowerCase().includes(q);
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        p.ip.toLowerCase().includes(q) ||
+        p.tags.some((t) => t.toLowerCase().includes(q));
       const matchFilter =
         filter === 'all' ||
         (filter === 'ready' && p.status !== 'running') ||
         (filter === 'running' && p.status === 'running') ||
         (filter === 'noproxy' && p.proxyType === '—');
-      return matchQuery && matchFilter;
+      const matchFolder =
+        folder === ALL_FOLDER ||
+        (folder === NO_FOLDER ? !p.folderId : p.folderId === folder);
+      const matchTag = !tag || p.tags.includes(tag);
+      return matchQuery && matchFilter && matchFolder && matchTag;
     });
-  }, [profiles, query, filter]);
+  }, [profiles, query, filter, folder, tag]);
+
+  const folderCounts = useMemo(() => {
+    const map: Record<string, number> = {
+      [ALL_FOLDER]: profiles.length,
+      [NO_FOLDER]: profiles.filter((p) => !p.folderId).length,
+    };
+    folders.forEach((f) => {
+      map[f.id] = profiles.filter((p) => p.folderId === f.id).length;
+    });
+    return map;
+  }, [profiles, folders]);
+
+  const allTags = useMemo(() => {
+    const counter = new Map<string, number>();
+    profiles.forEach((p) =>
+      p.tags.forEach((t) => counter.set(t, (counter.get(t) || 0) + 1)),
+    );
+    return [...counter.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([t]) => t);
+  }, [profiles]);
 
   const runningCount = profiles.filter((p) => p.status === 'running').length;
+  const folderName =
+    folder === ALL_FOLDER
+      ? undefined
+      : folder === NO_FOLDER
+        ? 'Без папки'
+        : folders.find((f) => f.id === folder)?.name;
 
   const meta = SECTION_META[section];
   const activeDetails = details
@@ -102,6 +146,22 @@ const Index = () => {
           limit={LIMIT}
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
+          folderSlot={
+            <FolderList
+              folders={folders}
+              counts={folderCounts}
+              active={folder}
+              onSelect={setFolder}
+              onCreate={(name) => createFolder(name)}
+              onRename={renameFolder}
+              onRecolor={recolorFolder}
+              onDelete={(id) => {
+                deleteFolder(id);
+                if (folder === id) setFolder(ALL_FOLDER);
+              }}
+              onDropProfiles={moveToFolder}
+            />
+          }
         />
 
         <main className="flex min-w-0 flex-1 flex-col">
@@ -114,6 +174,9 @@ const Index = () => {
             onFilter={setFilter}
             onBurger={() => setMenuOpen(true)}
             showFilters={section === 'profiles'}
+            tags={allTags}
+            activeTag={tag}
+            onTag={setTag}
           />
 
           <div className="min-h-0 flex-1 overflow-auto scroll-thin">
@@ -123,11 +186,16 @@ const Index = () => {
                 total={profiles.length}
                 runningCount={runningCount}
                 busyId={busy}
+                folderName={folderName}
+                activeTag={tag}
                 onToggle={toggleProfile}
                 onOpen={setDetails}
+                onTagClick={(t) => setTag(tag === t ? undefined : t)}
                 onReset={() => {
                   setQuery('');
                   setFilter('all');
+                  setFolder(ALL_FOLDER);
+                  setTag(undefined);
                 }}
               />
             )}
@@ -154,6 +222,10 @@ const Index = () => {
         onOpenChange={setAddOpen}
         onCreate={createProfile}
         proxies={proxies}
+        folders={folders}
+        defaultFolder={
+          folder !== ALL_FOLDER && folder !== NO_FOLDER ? folder : undefined
+        }
       />
       <ProfileDetails
         profile={activeDetails}
@@ -164,6 +236,12 @@ const Index = () => {
         onProxy={(id, proxyId) =>
           setProxy(id, proxyId ? proxies.find((p) => p.id === proxyId) : undefined)
         }
+        folders={folders}
+        allTags={allTags}
+        onFolder={(id, folderId) =>
+          moveToFolder([id], folderId, folders.find((f) => f.id === folderId)?.name)
+        }
+        onTags={setTags}
       />
     </div>
   );

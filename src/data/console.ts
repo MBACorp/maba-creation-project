@@ -15,6 +15,7 @@ export interface Profile {
   lastRun: string;
   fingerprint?: FingerprintOverride;
   proxyId?: string;
+  folderId?: string;
 }
 
 export const STATUS_LABEL: Record<ProfileStatus, string> = {
@@ -35,6 +36,7 @@ export const profilesSeed: Profile[] = [
     ip: '46.17.43.24',
     tags: ['карты', 'US'],
     lastRun: '2 минуты назад',
+    folderId: 'f1',
   },
   {
     id: 'p2',
@@ -47,6 +49,7 @@ export const profilesSeed: Profile[] = [
     ip: '217.182.193.11',
     tags: ['доставка'],
     lastRun: 'вчера, 21:40',
+    folderId: 'f1',
   },
   {
     id: 'p3',
@@ -95,6 +98,7 @@ export const profilesSeed: Profile[] = [
     ip: '83.19.207.42',
     tags: ['реклама'],
     lastRun: 'сегодня, 09:12',
+    folderId: 'f2',
   },
 ];
 

@@ -2,26 +2,36 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Profile, STATUS_LABEL } from '@/data/console';
 import { FingerprintOverride } from '@/data/fingerprint';
 import { ProxyRecord } from '@/data/proxy';
+import { Folder, colorClass } from '@/data/folders';
 import FingerprintEditor from './FingerprintEditor';
 import ProxyPicker from './ProxyPicker';
+import TagEditor from './TagEditor';
 import Icon from '@/components/ui/icon';
 
 interface ProfileDetailsProps {
   profile: Profile | null;
   proxies: ProxyRecord[];
+  folders: Folder[];
+  allTags: string[];
   onOpenChange: (v: boolean) => void;
   onToggle: (id: string) => void;
   onFingerprint: (id: string, fp: FingerprintOverride) => void;
   onProxy: (id: string, proxyId?: string) => void;
+  onFolder: (id: string, folderId?: string) => void;
+  onTags: (id: string, tags: string[]) => void;
 }
 
 const ProfileDetails = ({
   profile,
   proxies,
+  folders,
+  allTags,
   onOpenChange,
   onToggle,
   onFingerprint,
   onProxy,
+  onFolder,
+  onTags,
 }: ProfileDetailsProps) => {
   return (
     <Sheet open={!!profile} onOpenChange={onOpenChange}>
@@ -54,18 +64,53 @@ const ProfileDetails = ({
               ))}
             </dl>
 
-            {profile.tags.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {profile.tags.map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-md border border-border px-2 py-1 text-[12px] text-muted-foreground"
-                  >
-                    {t}
-                  </span>
-                ))}
+            <div className="mt-5 rounded-lg border border-border p-3.5">
+              <div className="flex items-center gap-3">
+                <Icon name="Folder" size={16} className="shrink-0 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-head text-[13px] font-bold text-foreground">Папка</p>
+                  <p className="flex items-center gap-1.5 truncate text-[12px] text-muted-foreground">
+                    {profile.folderId && (
+                      <span
+                        className={`h-2 w-2 shrink-0 rounded-sm ${colorClass(
+                          folders.find((f) => f.id === profile.folderId)?.color,
+                        )}`}
+                      />
+                    )}
+                    {folders.find((f) => f.id === profile.folderId)?.name || 'Без папки'}
+                  </p>
+                </div>
               </div>
-            )}
+              <div className="relative mt-3">
+                <select
+                  value={profile.folderId || ''}
+                  onChange={(e) => onFolder(profile.id, e.target.value || undefined)}
+                  className={`w-full appearance-none rounded-lg border bg-secondary px-3 py-2 pr-8 text-[13px] outline-none focus:border-primary/60 ${
+                    profile.folderId
+                      ? 'border-primary/40 text-foreground'
+                      : 'border-border text-muted-foreground'
+                  }`}
+                >
+                  <option value="">Без папки</option>
+                  {folders.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+                <Icon
+                  name="ChevronDown"
+                  size={14}
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
+              </div>
+            </div>
+
+            <TagEditor
+              tags={profile.tags}
+              suggestions={allTags}
+              onChange={(tags) => onTags(profile.id, tags)}
+            />
 
             <ProxyPicker
               proxies={proxies}

@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import Icon from '@/components/ui/icon';
 import { navItems, SectionId } from '@/data/console';
 import { cn } from '@/lib/utils';
@@ -10,9 +11,19 @@ interface SidebarProps {
   limit: number;
   open: boolean;
   onClose: () => void;
+  folderSlot?: ReactNode;
 }
 
-const Sidebar = ({ active, onSelect, onAdd, used, limit, open, onClose }: SidebarProps) => {
+const Sidebar = ({
+  active,
+  onSelect,
+  onAdd,
+  used,
+  limit,
+  open,
+  onClose,
+  folderSlot,
+}: SidebarProps) => {
   const percent = Math.round((used / limit) * 100);
 
   return (
@@ -99,23 +110,20 @@ const Sidebar = ({ active, onSelect, onAdd, used, limit, open, onClose }: Sideba
           </ul>
         </nav>
 
-        <div className="mt-auto space-y-3">
+        {active === 'profiles' && folderSlot && (
+          <div className="min-h-[120px] flex-1 overflow-y-auto scroll-thin">{folderSlot}</div>
+        )}
+
+        <div className="shrink-0 space-y-3">
           <a
             href="/mba-antidetect.zip"
             download
-            className="flex animate-fade-up items-start gap-3 rounded-lg border border-primary/30 p-3.5 transition-colors hover:bg-primary/5 [animation-delay:120ms]"
+            className="flex animate-fade-up items-center gap-2.5 rounded-lg border border-primary/30 px-3 py-2.5 transition-colors hover:bg-primary/5 [animation-delay:120ms]"
           >
-            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
-              <Icon name="MonitorDown" fallback="Download" size={15} />
-            </div>
-            <div>
-              <p className="font-head text-[13px] font-bold leading-snug text-foreground">
-                Приложение для ПК
-              </p>
-              <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
-                Антидетект-ядро, изоляция профилей, запуск по-настоящему.
-              </p>
-            </div>
+            <Icon name="MonitorDown" fallback="Download" size={15} className="shrink-0 text-primary" />
+            <p className="font-head text-[13px] font-bold leading-snug text-foreground">
+              Приложение для ПК
+            </p>
           </a>
 
           <div className="animate-fade-up rounded-lg border border-border p-3.5 [animation-delay:160ms]">

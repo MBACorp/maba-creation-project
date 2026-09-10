@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,12 +9,15 @@ import {
 import Icon from '@/components/ui/icon';
 import { Profile } from '@/data/console';
 import { ProxyRecord, countryName, flagOf } from '@/data/proxy';
+import { Folder, parseTags } from '@/data/folders';
 
 interface AddProfileDialogProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onCreate: (p: Omit<Profile, 'id'>) => void;
   proxies: ProxyRecord[];
+  folders: Folder[];
+  defaultFolder?: string;
 }
 
 const AddProfileDialog = ({
@@ -22,11 +25,19 @@ const AddProfileDialog = ({
   onOpenChange,
   onCreate,
   proxies,
+  folders,
+  defaultFolder,
 }: AddProfileDialogProps) => {
   const [name, setName] = useState('');
   const [note, setNote] = useState('');
   const [proxyId, setProxyId] = useState('');
+  const [folderId, setFolderId] = useState(defaultFolder || '');
+  const [tagsRaw, setTagsRaw] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (open) setFolderId(defaultFolder || '');
+  }, [open, defaultFolder]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,12 +55,14 @@ const AddProfileDialog = ({
       country: p?.country || '',
       flag: p?.country ? flagOf(p.country) : '',
       ip: p?.ip || '—',
-      tags: [],
+      tags: parseTags(tagsRaw),
+      folderId: folderId || undefined,
       lastRun: 'ещё не запускался',
     });
     setName('');
     setNote('');
     setProxyId('');
+    setTagsRaw('');
     setError('');
     onOpenChange(false);
   };
@@ -93,6 +106,46 @@ const AddProfileDialog = ({
               placeholder="карточный, почта, реклама…"
               className="w-full rounded-lg border border-border bg-transparent px-3 py-2 text-[14px] text-foreground outline-none focus:border-primary/50"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 block text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                Папка
+              </label>
+              <div className="relative">
+                <select
+                  value={folderId}
+                  onChange={(e) => setFolderId(e.target.value)}
+                  className={`w-full appearance-none rounded-lg border bg-transparent px-3 py-2 pr-8 text-[14px] outline-none focus:border-primary/50 ${
+                    folderId ? 'border-primary/40 text-foreground' : 'border-border text-muted-foreground'
+                  }`}
+                >
+                  <option value="">Без папки</option>
+                  {folders.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+                <Icon
+                  name="ChevronDown"
+                  size={14}
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                Теги
+              </label>
+              <input
+                value={tagsRaw}
+                onChange={(e) => setTagsRaw(e.target.value)}
+                placeholder="карты, US"
+                className="w-full rounded-lg border border-border bg-transparent px-3 py-2 text-[14px] text-foreground outline-none focus:border-primary/50"
+              />
+            </div>
           </div>
 
           <div>

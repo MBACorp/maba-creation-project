@@ -12,6 +12,9 @@ interface ToolbarProps {
   onFilter: (f: FilterId) => void;
   onBurger: () => void;
   showFilters: boolean;
+  tags?: string[];
+  activeTag?: string;
+  onTag?: (tag?: string) => void;
 }
 
 const filters: { id: FilterId; label: string }[] = [
@@ -30,9 +33,12 @@ const Toolbar = ({
   onFilter,
   onBurger,
   showFilters,
+  tags = [],
+  activeTag,
+  onTag,
 }: ToolbarProps) => {
   return (
-    <header className="flex flex-col gap-4 border-b border-border px-5 pb-4 pt-5 md:flex-row md:items-end md:justify-between md:px-8">
+    <header className="flex flex-col gap-4 border-b border-border px-5 pb-4 pt-5 md:px-8"><div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div className="flex animate-fade-up items-center gap-3">
         <button
           onClick={onBurger}
@@ -78,6 +84,36 @@ const Toolbar = ({
               {f.label}
             </button>
           ))}
+        </div>
+      )}
+      </div>
+
+      {showFilters && tags.length > 0 && (
+        <div className="flex animate-fade-up flex-wrap items-center gap-1.5 [animation-delay:60ms]">
+          <Icon name="Tag" size={12} className="mr-0.5 text-dot" />
+          {tags.map((t) => (
+            <button
+              key={t}
+              onClick={() => onTag?.(activeTag === t ? undefined : t)}
+              className={cn(
+                'rounded-md border px-2 py-1 text-[12px] transition-colors',
+                activeTag === t
+                  ? 'border-primary/50 bg-primary/10 text-primary'
+                  : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
+              )}
+            >
+              {t}
+            </button>
+          ))}
+          {activeTag && (
+            <button
+              onClick={() => onTag?.(undefined)}
+              className="ml-1 flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-primary"
+            >
+              <Icon name="X" size={11} />
+              сбросить
+            </button>
+          )}
         </div>
       )}
     </header>

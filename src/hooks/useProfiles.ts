@@ -292,6 +292,48 @@ export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
     [],
   );
 
+  const moveToFolder = useCallback(
+    async (ids: string[], folderId?: string, folderName?: string) => {
+      const set = new Set(ids);
+      const touched: Profile[] = [];
+
+      setProfiles((prev) =>
+        prev.map((p) => {
+          if (!set.has(p.id) || p.folderId === folderId) return p;
+          const next = { ...p, folderId };
+          touched.push(next);
+          return next;
+        }),
+      );
+
+      if (!touched.length) return;
+
+      const api = bridge();
+      if (api) await Promise.all(touched.map((p) => api.saveProfile(p)));
+
+      const target = folderId ? `в «${folderName}»` : 'из папки';
+      toast(
+        touched.length === 1
+          ? `Профиль «${touched[0].name}» перемещён ${target}`
+          : `Перемещено профилей: ${touched.length}`,
+      );
+    },
+    [],
+  );
+
+  const setTags = useCallback(async (id: string, tags: string[]) => {
+    let updated: Profile | undefined;
+    setProfiles((prev) =>
+      prev.map((p) => {
+        if (p.id !== id) return p;
+        updated = { ...p, tags };
+        return updated;
+      }),
+    );
+    const api = bridge();
+    if (api && updated) await api.saveProfile(updated);
+  }, []);
+
   const deleteProfile = useCallback(async (id: string) => {
     const api = bridge();
     if (api) await api.deleteProfile(id);
@@ -309,6 +351,8 @@ export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
     setFingerprint,
     setProxy,
     syncGeo,
+    moveToFolder,
+    setTags,
     reload,
   };
 };
