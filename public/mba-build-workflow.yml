@@ -1,0 +1,59 @@
+name: Сборка установщиков MBA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+            command: npm run build:win
+          - os: macos-latest
+            name: macos
+            command: npm run build:mac
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Установка зависимостей и ядра браузера
+        run: npm install
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: '0'
+
+      - name: Проверка, что ядро браузера на месте
+        shell: bash
+        run: |
+          if [ -d "node_modules/patchright-core/.local-browsers" ] || [ -d "node_modules/patchright/.local-browsers" ]; then
+            echo "Ядро браузера найдено"
+          else
+            echo "ВНИМАНИЕ: ядро браузера не найдено в node_modules"
+            find node_modules -maxdepth 3 -name "*chromium*" -type d | head -5
+          fi
+
+      - name: Сборка установщика
+        run: ${{ matrix.command }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          PLAYWRIGHT_BROWSERS_PATH: '0'
+
+      - name: Что получилось
+        shell: bash
+        run: ls -lh dist/*.exe dist/*.dmg 2>/dev/null || ls -lh dist/
+
+      - name: Готовые файлы
+        uses: actions/upload-artifact@v4
+        with:
+          name: MBA-installer-${{ matrix.name }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+          if-no-files-found: error
