@@ -22,6 +22,34 @@ export interface StartResult {
   cookies?: number;
 }
 
+export interface AuditCheck {
+  name: string;
+  title: string;
+  status: 'ok' | 'fail';
+  want: string;
+  got: string;
+  weight: number;
+}
+
+export interface AuditReport {
+  ok: boolean;
+  error?: string;
+  score?: number;
+  passed?: number;
+  total?: number;
+  site?: string;
+  siteUrl?: string;
+  publicIp?: string | null;
+  checks?: AuditCheck[];
+  actual?: {
+    userAgent: string;
+    timezone: string;
+    gpu: string;
+    screen: string;
+    canvasHash: string;
+  };
+}
+
 interface MbaBridge {
   isDesktop: boolean;
   platform: string;
@@ -30,6 +58,8 @@ interface MbaBridge {
   deleteProfile: (id: string) => Promise<boolean>;
   startProfile: (profile: Profile) => Promise<StartResult>;
   stopProfile: (id: string) => Promise<{ ok: boolean }>;
+  auditProfile: (payload: { id: string; site: string }) => Promise<AuditReport>;
+
   listCookies: (profileId: string) => Promise<{
     total: number;
     domains: { domain: string; count: number; expired: number; session: number }[];
