@@ -3,6 +3,8 @@ import os
 import base64
 import re
 import hashlib
+import urllib.request
+import urllib.error
 
 import boto3
 import psycopg2
@@ -89,8 +91,86 @@ def _latest_map(releases):
     return latest
 
 
+def _github_repo() -> str:
+    return (os.environ.get('GITHUB_REPO') or '').strip().strip('/')
+
+
+def _guess_platform(name: str):
+    """По имени файла понимает, для какой системы установщик."""
+    low = name.lower()
+    if low.endswith('.exe'):
+        return 'windows', 'x64'
+    if low.endswith('.dmg') or low.endswith('.zip') and 'mac' in low:
+        arch = 'arm64' if ('arm' in low or 'mac' in low) else ''
+        return 'macos', arch
+    return None, ''
+
+
+def _fetch_github():
+    """Читает опубликованные релизы из GitHub. Если репозиторий не задан — молча пропускает."""
+    repo = _github_repo()
+    if not repo:
+        return []
+
+    url = f'https://api.github.com/repos/{repo}/releases?per_page=20'
+    request = urllib.request.Request(url, headers={
+        'Accept': 'application/vnd.github+json',
+        'User-Agent': 'MBA-Updater',
+    })
+
+    token = (os.environ.get('GITHUB_TOKEN') or '').strip()
+    if token:
+        request.add_header('Authorization', f'Bearer {token}')
+
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            data = json.loads(response.read().decode('utf-8'))
+    except Exception:
+        return []
+
+    result = []
+    for release in data if isinstance(data, list) else []:
+        if release.get('draft'):
+            continue
+        version = (release.get('tag_name') or '').lstrip('vV')
+        notes = release.get('body') or ''
+        created = release.get('published_at') or release.get('created_at')
+
+        for asset in release.get('assets') or []:
+            name = asset.get('name') or ''
+            platform, arch = _guess_platform(name)
+            if not platform:
+                continue
+            result.append({
+                'id': asset.get('id'),
+                'version': version,
+                'platform': platform,
+                'fileUrl': asset.get('browser_download_url'),
+                'fileName': name,
+                'fileSize': int(asset.get('size') or 0),
+                'notes': notes,
+                'downloads': int(asset.get('download_count') or 0),
+                'createdAt': created,
+                'sha256': '',
+                'arch': arch,
+                'mandatory': False,
+                'source': 'github',
+            })
+    return result
+
+
+def _all_releases():
+    """Собирает версии из GitHub и из ручных загрузок, GitHub в приоритете."""
+    combined = _fetch_github()
+    try:
+        combined += _fetch_all()
+    except Exception:
+        pass
+    return combined
+
+
 def _list_releases():
-    releases = _fetch_all()
+    releases = _all_releases()
     return {'releases': releases, 'latest': _latest_map(releases)}
 
 
@@ -103,7 +183,7 @@ def _check_update(params: dict):
     if platform not in PLATFORMS:
         return _response(400, {'error': 'Неизвестная платформа'})
 
-    releases = [r for r in _fetch_all() if r['platform'] == platform]
+    releases = [r for r in _all_releases() if r['platform'] == platform]
 
     if arch:
         matched = [r for r in releases if not r['arch'] or r['arch'] == arch]
