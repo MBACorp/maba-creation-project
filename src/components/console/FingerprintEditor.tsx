@@ -90,9 +90,19 @@ const FingerprintEditor = ({ value, onSave }: FingerprintEditorProps) => {
   );
 
   const changed = Object.values(draft).filter((v) => v !== AUTO).length;
+  const geoAuto = Boolean(
+    value?.geoAuto &&
+      draft.timezone === (value.timezone || AUTO) &&
+      draft.locale === (value.locale || AUTO),
+  );
 
   const save = () => {
     const fp: FingerprintOverride = {};
+    const geoUntouched =
+      value?.geoAuto &&
+      draft.timezone === (value.timezone || AUTO) &&
+      draft.locale === (value.locale || AUTO);
+    if (geoUntouched) fp.geoAuto = true;
     if (draft.os !== AUTO) fp.os = draft.os as 'win' | 'mac';
     if (draft.screen !== AUTO) fp.screen = draft.screen;
     if (draft.gpu !== AUTO) fp.gpu = draft.gpu;
@@ -121,7 +131,11 @@ const FingerprintEditor = ({ value, onSave }: FingerprintEditorProps) => {
             Отпечаток браузера
           </span>
           <span className="block text-[12px] text-muted-foreground">
-            {changed ? `${changed} значений задано вручную` : 'Всё определяется автоматически'}
+            {geoAuto
+              ? `Подстроен под прокси${changed > 2 ? `, вручную: ${changed - 2}` : ''}`
+              : changed
+                ? `${changed} значений задано вручную`
+                : 'Всё определяется автоматически'}
           </span>
         </span>
         <Icon
@@ -147,18 +161,28 @@ const FingerprintEditor = ({ value, onSave }: FingerprintEditorProps) => {
               options={gpuOptions}
               onChange={(v) => set('gpu', v)}
             />
-            <Field
-              label="Часовой пояс"
-              value={draft.timezone}
-              options={TIMEZONE_OPTIONS}
-              onChange={(v) => set('timezone', v)}
-            />
-            <Field
-              label="Язык"
-              value={draft.locale}
-              options={LOCALE_OPTIONS}
-              onChange={(v) => set('locale', v)}
-            />
+            <div className={geoAuto ? 'rounded-lg border border-primary/25 bg-primary/5 p-3' : undefined}>
+              {geoAuto && (
+                <p className="mb-3 flex items-start gap-1.5 text-[11px] leading-relaxed text-primary">
+                  <Icon name="Wand2" fallback="Sparkles" size={12} className="mt-0.5 shrink-0" />
+                  Подобрано автоматически по стране прокси. Измените — значения станут ручными.
+                </p>
+              )}
+              <div className="space-y-3.5">
+                <Field
+                  label="Часовой пояс"
+                  value={draft.timezone}
+                  options={TIMEZONE_OPTIONS}
+                  onChange={(v) => set('timezone', v)}
+                />
+                <Field
+                  label="Язык"
+                  value={draft.locale}
+                  options={LOCALE_OPTIONS}
+                  onChange={(v) => set('locale', v)}
+                />
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <Field
                 label="Процессор"

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import TopBar from '@/components/console/TopBar';
 import Sidebar from '@/components/console/Sidebar';
@@ -13,6 +13,7 @@ import ProfileDetails from '@/components/console/ProfileDetails';
 import { Profile, SectionId } from '@/data/console';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useProxies } from '@/hooks/useProxies';
+import { ProxyRecord } from '@/data/proxy';
 
 const SECTION_META: Record<SectionId, { eyebrow: string; title: string }> = {
   profiles: { eyebrow: 'Профили браузера', title: 'Все профили' },
@@ -25,6 +26,11 @@ const SECTION_META: Record<SectionId, { eyebrow: string; title: string }> = {
 const LIMIT = 10;
 
 const Index = () => {
+  const syncGeoRef = useRef<((list: ProxyRecord[]) => void) | null>(null);
+  const handleChecked = useCallback((list: ProxyRecord[]) => {
+    syncGeoRef.current?.(list);
+  }, []);
+
   const {
     proxies,
     checking,
@@ -32,7 +38,7 @@ const Index = () => {
     deleteProxy,
     runCheck,
     checkAll,
-  } = useProxies();
+  } = useProxies(handleChecked);
   const {
     profiles,
     busy,
@@ -41,7 +47,10 @@ const Index = () => {
     createProfile,
     setFingerprint,
     setProxy,
+    syncGeo,
   } = useProfiles(LIMIT, proxies);
+
+  syncGeoRef.current = syncGeo;
   const [section, setSection] = useState<SectionId>('profiles');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterId>('all');

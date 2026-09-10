@@ -10,7 +10,7 @@ import { bridge } from '@/lib/desktop';
 
 const newId = () => `px${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
-export const useProxies = () => {
+export const useProxies = (onChecked?: (list: ProxyRecord[]) => void) => {
   const [proxies, setProxies] = useState<ProxyRecord[]>(proxySeed);
   const [checking, setChecking] = useState(false);
 
@@ -66,6 +66,7 @@ export const useProxies = () => {
         );
 
         persist(updated);
+        if (onChecked && updated.length) onChecked(updated);
 
         if (targets.length === 1) {
           const r = results[0];
@@ -92,7 +93,7 @@ export const useProxies = () => {
         setChecking(false);
       }
     },
-    [persist],
+    [persist, onChecked],
   );
 
   const addProxies = useCallback(

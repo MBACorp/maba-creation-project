@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Profile, profilesSeed } from '@/data/console';
-import { FingerprintOverride, countOverrides } from '@/data/fingerprint';
+import {
+  FingerprintOverride,
+  countOverrides,
+  geoToFingerprint,
+  localeLabel,
+  tzLabel,
+} from '@/data/fingerprint';
 import { flagOf } from '@/data/proxy';
 import { bridge, isDesktop } from '@/lib/desktop';
 
@@ -12,6 +18,11 @@ interface ProxyLike {
   type: string;
   user?: string;
   password?: string;
+  country?: string;
+  city?: string;
+  ip?: string;
+  timezone?: string;
+  status?: string;
 }
 
 export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
@@ -146,8 +157,20 @@ export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
   );
 
   const setProxy = useCallback(
-    async (id: string, proxy?: { id: string; type: string; country?: string; ip?: string }) => {
+    async (
+      id: string,
+      proxy?: {
+        id: string;
+        type: string;
+        country?: string;
+        city?: string;
+        ip?: string;
+        timezone?: string;
+      },
+    ) => {
       let updated: Profile | undefined;
+      const geo = proxy ? geoToFingerprint(proxy) : {};
+
       setProfiles((prev) =>
         prev.map((p) => {
           if (p.id !== id) return p;
@@ -159,14 +182,112 @@ export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
                 country: proxy.country || '',
                 flag: proxy.country ? flagOf(proxy.country) : '',
                 ip: proxy.ip || '—',
+                fingerprint:
+                  geo.timezone || geo.locale
+                    ? {
+                        ...p.fingerprint,
+                        ...(geo.timezone ? { timezone: geo.timezone } : {}),
+                        ...(geo.locale ? { locale: geo.locale } : {}),
+                        geoAuto: true,
+                      }
+                    : p.fingerprint,
               }
-            : { ...p, proxyId: undefined, proxyType: '—', country: '', flag: '', ip: '—' };
+            : {
+                ...p,
+                proxyId: undefined,
+                proxyType: '—',
+                country: '',
+                flag: '',
+                ip: '—',
+                fingerprint: p.fingerprint?.geoAuto
+                  ? {
+                      ...p.fingerprint,
+                      timezone: undefined,
+                      locale: undefined,
+                      geoAuto: undefined,
+                    }
+                  : p.fingerprint,
+              };
           return updated;
         }),
       );
+
       const api = bridge();
       if (api && updated) await api.saveProfile(updated);
-      toast(proxy ? 'Прокси привязан к профилю' : 'Прокси отвязан');
+
+      if (proxy) {
+        toast('Прокси привязан к профилю', {
+          description:
+            geo.timezone || geo.locale
+              ? `Часовой пояс и язык подстроены: ${[tzLabel(geo.timezone), localeLabel(geo.locale)]
+                  .filter(Boolean)
+                  .join(' · ')}`
+              : 'Проверьте прокси, чтобы подобрать часовой пояс и язык',
+        });
+      } else {
+        toast('Прокси отвязан');
+      }
+    },
+    [],
+  );
+
+  const syncGeo = useCallback(
+    async (checked: ProxyLike[]) => {
+      const byId = new Map(checked.map((p) => [p.id, p]));
+      const touched: Profile[] = [];
+
+      setProfiles((prev) =>
+        prev.map((p) => {
+          if (!p.proxyId || !byId.has(p.proxyId)) return p;
+          const proxy = byId.get(p.proxyId)!;
+          if (proxy.status !== 'ok') return p;
+
+          const geo = geoToFingerprint(proxy);
+          if (!geo.timezone && !geo.locale) return p;
+
+          const manualGeo =
+            p.fingerprint &&
+            !p.fingerprint.geoAuto &&
+            (p.fingerprint.timezone || p.fingerprint.locale);
+          if (manualGeo) return p;
+
+          if (
+            p.fingerprint?.timezone === geo.timezone &&
+            p.fingerprint?.locale === geo.locale
+          ) {
+            return p;
+          }
+
+          const next: Profile = {
+            ...p,
+            country: proxy.country || p.country,
+            flag: proxy.country ? flagOf(proxy.country) : p.flag,
+            ip: proxy.ip || p.ip,
+            fingerprint: {
+              ...p.fingerprint,
+              ...(geo.timezone ? { timezone: geo.timezone } : {}),
+              ...(geo.locale ? { locale: geo.locale } : {}),
+              geoAuto: true,
+            },
+          };
+          touched.push(next);
+          return next;
+        }),
+      );
+
+      if (!touched.length) return;
+
+      const api = bridge();
+      if (api) await Promise.all(touched.map((p) => api.saveProfile(p)));
+
+      toast(
+        touched.length === 1
+          ? `Профиль «${touched[0].name}» подстроен под прокси`
+          : `Подстроено профилей: ${touched.length}`,
+        {
+          description: `Часовой пояс и язык обновлены по стране прокси`,
+        },
+      );
     },
     [],
   );
@@ -187,6 +308,7 @@ export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
     deleteProfile,
     setFingerprint,
     setProxy,
+    syncGeo,
     reload,
   };
 };
