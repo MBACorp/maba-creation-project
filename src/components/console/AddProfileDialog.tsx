@@ -6,26 +6,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
+import Icon from '@/components/ui/icon';
 import { Profile } from '@/data/console';
+import { ProxyRecord, countryName, flagOf } from '@/data/proxy';
 
 interface AddProfileDialogProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onCreate: (p: Omit<Profile, 'id'>) => void;
+  proxies: ProxyRecord[];
 }
 
-const proxyOptions = [
-  { type: 'socks5', country: 'US', flag: '🇺🇸', ip: '46.17.44.90' },
-  { type: 'socks5', country: 'NL', flag: '🇳🇱', ip: '185.44.12.77' },
-  { type: 'http', country: 'DE', flag: '🇩🇪', ip: '91.214.68.31' },
-  { type: '—', country: '', flag: '', ip: '—' },
-];
-
-const AddProfileDialog = ({ open, onOpenChange, onCreate }: AddProfileDialogProps) => {
+const AddProfileDialog = ({
+  open,
+  onOpenChange,
+  onCreate,
+  proxies,
+}: AddProfileDialogProps) => {
   const [name, setName] = useState('');
   const [note, setNote] = useState('');
-  const [proxy, setProxy] = useState(0);
+  const [proxyId, setProxyId] = useState('');
   const [error, setError] = useState('');
 
   const submit = (e: React.FormEvent) => {
@@ -34,21 +34,22 @@ const AddProfileDialog = ({ open, onOpenChange, onCreate }: AddProfileDialogProp
       setError('Имя профиля — минимум 2 символа');
       return;
     }
-    const p = proxyOptions[proxy];
+    const p = proxies.find((x) => x.id === proxyId);
     onCreate({
       name: name.trim(),
       status: 'ready',
       note: note.trim() || 'без заметки',
-      proxyType: p.type,
-      country: p.country,
-      flag: p.flag,
-      ip: p.ip,
+      proxyId: p?.id,
+      proxyType: p?.type || '—',
+      country: p?.country || '',
+      flag: p?.country ? flagOf(p.country) : '',
+      ip: p?.ip || '—',
       tags: [],
       lastRun: 'ещё не запускался',
     });
     setName('');
     setNote('');
-    setProxy(0);
+    setProxyId('');
     setError('');
     onOpenChange(false);
   };
@@ -98,23 +99,34 @@ const AddProfileDialog = ({ open, onOpenChange, onCreate }: AddProfileDialogProp
             <label className="mb-1.5 block text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
               Прокси
             </label>
-            <div className="flex flex-wrap gap-2">
-              {proxyOptions.map((p, i) => (
-                <button
-                  type="button"
-                  key={p.ip}
-                  onClick={() => setProxy(i)}
-                  className={cn(
-                    'rounded-lg border px-3 py-1.5 text-[13px] transition-colors',
-                    proxy === i
-                      ? 'border-primary/45 text-foreground'
-                      : 'border-border text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {p.type === '—' ? 'Без прокси' : `${p.flag} ${p.type} · ${p.country}`}
-                </button>
-              ))}
+            <div className="relative">
+              <select
+                value={proxyId}
+                onChange={(e) => setProxyId(e.target.value)}
+                className={`w-full appearance-none rounded-lg border bg-transparent px-3 py-2 pr-8 text-[14px] outline-none focus:border-primary/50 ${
+                  proxyId ? 'border-primary/40 text-foreground' : 'border-border text-muted-foreground'
+                }`}
+              >
+                <option value="">Без прокси</option>
+                {proxies.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.type} · {p.host}:{p.port}
+                    {p.status === 'ok' && p.country ? ` — ${countryName(p.country)}` : ''}
+                    {p.status === 'fail' ? ' — не отвечает' : ''}
+                  </option>
+                ))}
+              </select>
+              <Icon
+                name="ChevronDown"
+                size={14}
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
             </div>
+            {proxies.length === 0 && (
+              <p className="mt-1.5 text-[12px] text-muted-foreground">
+                Прокси пока не добавлены — их можно привязать позже в разделе «Прокси».
+              </p>
+            )}
           </div>
 
           <button

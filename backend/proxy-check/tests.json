@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "name": "Пустой список отклоняется",
+      "method": "POST",
+      "path": "/",
+      "body": {"proxies": []},
+      "expectedStatus": 400,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Проверка недоступного прокси",
+      "method": "POST",
+      "path": "/",
+      "body": {"proxies": [{"id": "t1", "host": "127.0.0.1", "port": 1080, "type": "socks5"}]},
+      "expectedStatus": 200,
+      "expectedBody": {"results": [{"id": "t1", "ok": false}]},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

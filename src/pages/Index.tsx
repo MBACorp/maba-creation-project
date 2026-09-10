@@ -12,6 +12,7 @@ import AddProfileDialog from '@/components/console/AddProfileDialog';
 import ProfileDetails from '@/components/console/ProfileDetails';
 import { Profile, SectionId } from '@/data/console';
 import { useProfiles } from '@/hooks/useProfiles';
+import { useProxies } from '@/hooks/useProxies';
 
 const SECTION_META: Record<SectionId, { eyebrow: string; title: string }> = {
   profiles: { eyebrow: 'Профили браузера', title: 'Все профили' },
@@ -24,8 +25,23 @@ const SECTION_META: Record<SectionId, { eyebrow: string; title: string }> = {
 const LIMIT = 10;
 
 const Index = () => {
-  const { profiles, busy, desktop, toggleProfile, createProfile, setFingerprint } =
-    useProfiles(LIMIT);
+  const {
+    proxies,
+    checking,
+    addProxies,
+    deleteProxy,
+    runCheck,
+    checkAll,
+  } = useProxies();
+  const {
+    profiles,
+    busy,
+    desktop,
+    toggleProfile,
+    createProfile,
+    setFingerprint,
+    setProxy,
+  } = useProfiles(LIMIT, proxies);
   const [section, setSection] = useState<SectionId>('profiles');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterId>('all');
@@ -106,7 +122,17 @@ const Index = () => {
                 }}
               />
             )}
-            {section === 'proxy' && <ProxyPanel />}
+            {section === 'proxy' && (
+              <ProxyPanel
+                proxies={proxies}
+                profiles={profiles}
+                checking={checking}
+                onAdd={addProxies}
+                onCheck={runCheck}
+                onCheckAll={checkAll}
+                onDelete={deleteProxy}
+              />
+            )}
             {section === 'ai' && <AiPanel />}
             {section === 'api' && <ApiPanel />}
             {section === 'android' && <AndroidPanel />}
@@ -114,12 +140,21 @@ const Index = () => {
         </main>
       </div>
 
-      <AddProfileDialog open={addOpen} onOpenChange={setAddOpen} onCreate={createProfile} />
+      <AddProfileDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onCreate={createProfile}
+        proxies={proxies}
+      />
       <ProfileDetails
         profile={activeDetails}
+        proxies={proxies}
         onOpenChange={(v) => !v && setDetails(null)}
         onToggle={toggleProfile}
         onFingerprint={setFingerprint}
+        onProxy={(id, proxyId) =>
+          setProxy(id, proxyId ? proxies.find((p) => p.id === proxyId) : undefined)
+        }
       />
     </div>
   );

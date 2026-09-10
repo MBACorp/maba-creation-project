@@ -14,6 +14,7 @@ export interface Profile {
   tags: string[];
   lastRun: string;
   fingerprint?: FingerprintOverride;
+  proxyId?: string;
 }
 
 export const STATUS_LABEL: Record<ProfileStatus, string> = {

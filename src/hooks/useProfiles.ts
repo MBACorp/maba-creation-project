@@ -2,9 +2,19 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Profile, profilesSeed } from '@/data/console';
 import { FingerprintOverride, countOverrides } from '@/data/fingerprint';
+import { flagOf } from '@/data/proxy';
 import { bridge, isDesktop } from '@/lib/desktop';
 
-export const useProfiles = (limit: number) => {
+interface ProxyLike {
+  id: string;
+  host: string;
+  port: number;
+  type: string;
+  user?: string;
+  password?: string;
+}
+
+export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
   const [profiles, setProfiles] = useState<Profile[]>(profilesSeed);
   const [busy, setBusy] = useState<string | null>(null);
   const desktop = isDesktop();
@@ -71,7 +81,14 @@ export const useProfiles = (limit: number) => {
           await api.stopProfile(id);
           toast(`Профиль «${profile.name}» остановлен`);
         } else {
-          const result = await api.startProfile(profile);
+          const proxy = proxies.find((x) => x.id === profile.proxyId);
+          const result = await api.startProfile({
+            ...profile,
+            proxyHost: proxy ? `${proxy.host}:${proxy.port}` : undefined,
+            proxyUser: proxy?.user,
+            proxyPass: proxy?.password,
+            proxyType: proxy?.type || profile.proxyType,
+          } as Profile);
           if (!result.ok) {
             toast.error('Не удалось запустить профиль', { description: result.error });
             return;
@@ -87,7 +104,7 @@ export const useProfiles = (limit: number) => {
         setBusy(null);
       }
     },
-    [profiles],
+    [profiles, proxies],
   );
 
   const createProfile = useCallback(
@@ -128,6 +145,32 @@ export const useProfiles = (limit: number) => {
     [],
   );
 
+  const setProxy = useCallback(
+    async (id: string, proxy?: { id: string; type: string; country?: string; ip?: string }) => {
+      let updated: Profile | undefined;
+      setProfiles((prev) =>
+        prev.map((p) => {
+          if (p.id !== id) return p;
+          updated = proxy
+            ? {
+                ...p,
+                proxyId: proxy.id,
+                proxyType: proxy.type,
+                country: proxy.country || '',
+                flag: proxy.country ? flagOf(proxy.country) : '',
+                ip: proxy.ip || '—',
+              }
+            : { ...p, proxyId: undefined, proxyType: '—', country: '', flag: '', ip: '—' };
+          return updated;
+        }),
+      );
+      const api = bridge();
+      if (api && updated) await api.saveProfile(updated);
+      toast(proxy ? 'Прокси привязан к профилю' : 'Прокси отвязан');
+    },
+    [],
+  );
+
   const deleteProfile = useCallback(async (id: string) => {
     const api = bridge();
     if (api) await api.deleteProfile(id);
@@ -143,6 +186,7 @@ export const useProfiles = (limit: number) => {
     createProfile,
     deleteProfile,
     setFingerprint,
+    setProxy,
     reload,
   };
 };

@@ -1,21 +1,27 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Profile, STATUS_LABEL } from '@/data/console';
 import { FingerprintOverride } from '@/data/fingerprint';
+import { ProxyRecord } from '@/data/proxy';
 import FingerprintEditor from './FingerprintEditor';
+import ProxyPicker from './ProxyPicker';
 import Icon from '@/components/ui/icon';
 
 interface ProfileDetailsProps {
   profile: Profile | null;
+  proxies: ProxyRecord[];
   onOpenChange: (v: boolean) => void;
   onToggle: (id: string) => void;
   onFingerprint: (id: string, fp: FingerprintOverride) => void;
+  onProxy: (id: string, proxyId?: string) => void;
 }
 
 const ProfileDetails = ({
   profile,
+  proxies,
   onOpenChange,
   onToggle,
   onFingerprint,
+  onProxy,
 }: ProfileDetailsProps) => {
   return (
     <Sheet open={!!profile} onOpenChange={onOpenChange}>
@@ -60,6 +66,12 @@ const ProfileDetails = ({
                 ))}
               </div>
             )}
+
+            <ProxyPicker
+              proxies={proxies}
+              value={profile.proxyId}
+              onChange={(proxyId) => onProxy(profile.id, proxyId)}
+            />
 
             <FingerprintEditor
               value={profile.fingerprint}
