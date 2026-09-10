@@ -105,10 +105,16 @@ export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
             return;
           }
           const fp = result.fingerprint;
+          const parts = fp
+            ? [
+                fp.os === 'mac' ? 'macOS' : 'Windows',
+                `${fp.screen.width}×${fp.screen.height}`,
+                fp.timezone,
+              ]
+            : [];
+          if (result.cookies) parts.push(`куки: ${result.cookies}`);
           toast(`Профиль «${profile.name}» запущен`, {
-            description: fp
-              ? `${fp.os === 'mac' ? 'macOS' : 'Windows'} · ${fp.screen.width}×${fp.screen.height} · ${fp.timezone}`
-              : undefined,
+            description: parts.length ? parts.join(' · ') : undefined,
           });
         }
       } finally {

@@ -6,6 +6,7 @@ import { Folder, colorClass } from '@/data/folders';
 import FingerprintEditor from './FingerprintEditor';
 import ProxyPicker from './ProxyPicker';
 import TagEditor from './TagEditor';
+import CookieManager from './CookieManager';
 import Icon from '@/components/ui/icon';
 
 interface ProfileDetailsProps {
@@ -121,6 +122,12 @@ const ProfileDetails = ({
             <FingerprintEditor
               value={profile.fingerprint}
               onSave={(fp) => onFingerprint(profile.id, fp)}
+            />
+
+            <CookieManager
+              key={profile.id}
+              profileId={profile.id}
+              profileName={profile.name}
             />
 
             <button
