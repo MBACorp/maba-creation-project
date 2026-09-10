@@ -1,4 +1,5 @@
 import Icon from '@/components/ui/icon';
+import { STATUS_LABELS } from '@/data/labels';
 import { cn } from '@/lib/utils';
 
 export type FilterId = 'all' | 'ready' | 'running' | 'noproxy';
@@ -15,6 +16,9 @@ interface ToolbarProps {
   tags?: string[];
   activeTag?: string;
   onTag?: (tag?: string) => void;
+  labelCounts?: Record<string, number>;
+  activeLabel?: string;
+  onLabel?: (labelId?: string) => void;
 }
 
 const filters: { id: FilterId; label: string }[] = [
@@ -36,7 +40,11 @@ const Toolbar = ({
   tags = [],
   activeTag,
   onTag,
+  labelCounts = {},
+  activeLabel,
+  onLabel,
 }: ToolbarProps) => {
+  const usedLabels = STATUS_LABELS.filter((l) => labelCounts[l.id]);
   return (
     <header className="flex flex-col gap-4 border-b border-border px-5 pb-4 pt-5 md:px-8"><div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div className="flex animate-fade-up items-center gap-3">
@@ -87,6 +95,36 @@ const Toolbar = ({
         </div>
       )}
       </div>
+
+      {showFilters && usedLabels.length > 0 && (
+        <div className="flex animate-fade-up flex-wrap items-center gap-1.5 [animation-delay:50ms]">
+          {usedLabels.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => onLabel?.(activeLabel === l.id ? undefined : l.id)}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md border px-2 py-1 text-[12px] transition-colors',
+                activeLabel === l.id
+                  ? l.chip
+                  : 'border-border text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <span className={cn('h-[6px] w-[6px] rounded-full', l.dot)} />
+              {l.name}
+              <span className="tabular-nums opacity-60">{labelCounts[l.id]}</span>
+            </button>
+          ))}
+          {activeLabel && (
+            <button
+              onClick={() => onLabel?.(undefined)}
+              className="ml-1 flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-primary"
+            >
+              <Icon name="X" size={11} />
+              сбросить
+            </button>
+          )}
+        </div>
+      )}
 
       {showFilters && tags.length > 0 && (
         <div className="flex animate-fade-up flex-wrap items-center gap-1.5 [animation-delay:60ms]">

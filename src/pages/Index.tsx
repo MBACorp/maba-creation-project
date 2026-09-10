@@ -53,6 +53,9 @@ const Index = () => {
     syncGeo,
     moveToFolder,
     setTags,
+    setLabel,
+    addNote,
+    deleteNote,
   } = useProfiles(LIMIT, proxies);
 
   syncGeoRef.current = syncGeo;
@@ -67,6 +70,7 @@ const Index = () => {
   const [details, setDetails] = useState<Profile | null>(null);
   const [folder, setFolder] = useState<string>(ALL_FOLDER);
   const [tag, setTag] = useState<string | undefined>();
+  const [label, setLabelFilter] = useState<string | undefined>();
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -85,9 +89,18 @@ const Index = () => {
         folder === ALL_FOLDER ||
         (folder === NO_FOLDER ? !p.folderId : p.folderId === folder);
       const matchTag = !tag || p.tags.includes(tag);
-      return matchQuery && matchFilter && matchFolder && matchTag;
+      const matchLabel = !label || p.labelId === label;
+      return matchQuery && matchFilter && matchFolder && matchTag && matchLabel;
     });
-  }, [profiles, query, filter, folder, tag]);
+  }, [profiles, query, filter, folder, tag, label]);
+
+  const labelCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    profiles.forEach((p) => {
+      if (p.labelId) map[p.labelId] = (map[p.labelId] || 0) + 1;
+    });
+    return map;
+  }, [profiles]);
 
   const folderCounts = useMemo(() => {
     const map: Record<string, number> = {
@@ -177,6 +190,9 @@ const Index = () => {
             tags={allTags}
             activeTag={tag}
             onTag={setTag}
+            labelCounts={labelCounts}
+            activeLabel={label}
+            onLabel={setLabelFilter}
           />
 
           <div className="min-h-0 flex-1 overflow-auto scroll-thin">
@@ -191,11 +207,13 @@ const Index = () => {
                 onToggle={toggleProfile}
                 onOpen={setDetails}
                 onTagClick={(t) => setTag(tag === t ? undefined : t)}
+                onLabel={setLabel}
                 onReset={() => {
                   setQuery('');
                   setFilter('all');
                   setFolder(ALL_FOLDER);
                   setTag(undefined);
+                  setLabelFilter(undefined);
                 }}
               />
             )}
@@ -242,6 +260,9 @@ const Index = () => {
           moveToFolder([id], folderId, folders.find((f) => f.id === folderId)?.name)
         }
         onTags={setTags}
+        onLabel={setLabel}
+        onAddNote={addNote}
+        onDeleteNote={deleteNote}
       />
     </div>
   );

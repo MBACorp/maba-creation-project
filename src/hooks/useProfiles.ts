@@ -9,6 +9,7 @@ import {
   tzLabel,
 } from '@/data/fingerprint';
 import { flagOf } from '@/data/proxy';
+import { labelById, newNote } from '@/data/labels';
 import { bridge, isDesktop } from '@/lib/desktop';
 
 interface ProxyLike {
@@ -340,6 +341,70 @@ export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
     if (api && updated) await api.saveProfile(updated);
   }, []);
 
+  const setLabel = useCallback(
+    async (id: string, labelId?: string, silent = false) => {
+      let updated: Profile | undefined;
+      setProfiles((prev) =>
+        prev.map((p) => {
+          if (p.id !== id) return p;
+          updated = { ...p, labelId };
+          return updated;
+        }),
+      );
+      const api = bridge();
+      if (api && updated) await api.saveProfile(updated);
+      if (!silent) {
+        const label = labelById(labelId);
+        toast(label ? `Метка: ${label.name}` : 'Метка снята');
+      }
+    },
+    [],
+  );
+
+  const addNote = useCallback(
+    async (id: string, text: string, labelId?: string) => {
+      const clean = text.trim();
+      if (!clean) return;
+
+      let updated: Profile | undefined;
+      setProfiles((prev) =>
+        prev.map((p) => {
+          if (p.id !== id) return p;
+          const note = newNote(clean, labelId);
+          updated = {
+            ...p,
+            notes: [note, ...(p.notes || [])].slice(0, 100),
+            ...(labelId ? { labelId } : {}),
+          };
+          return updated;
+        }),
+      );
+
+      const api = bridge();
+      if (api && updated) await api.saveProfile(updated);
+
+      const label = labelById(labelId);
+      toast('Заметка добавлена', {
+        description: label ? `Метка изменена на «${label.name}»` : undefined,
+      });
+    },
+    [],
+  );
+
+  const deleteNote = useCallback(async (id: string, noteId: string) => {
+    let updated: Profile | undefined;
+    setProfiles((prev) =>
+      prev.map((p) => {
+        if (p.id !== id) return p;
+        updated = { ...p, notes: (p.notes || []).filter((n) => n.id !== noteId) };
+        return updated;
+      }),
+    );
+    const api = bridge();
+    if (api && updated) await api.saveProfile(updated);
+    toast('Заметка удалена');
+  }, []);
+
   const deleteProfile = useCallback(async (id: string) => {
     const api = bridge();
     if (api) await api.deleteProfile(id);
@@ -359,6 +424,9 @@ export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
     syncGeo,
     moveToFolder,
     setTags,
+    setLabel,
+    addNote,
+    deleteNote,
     reload,
   };
 };

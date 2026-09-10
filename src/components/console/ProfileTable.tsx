@@ -1,5 +1,6 @@
 import Icon from '@/components/ui/icon';
 import { Profile, STATUS_LABEL } from '@/data/console';
+import LabelPicker from './LabelPicker';
 import { cn } from '@/lib/utils';
 
 interface ProfileTableProps {
@@ -13,6 +14,7 @@ interface ProfileTableProps {
   onOpen: (p: Profile) => void;
   onReset: () => void;
   onTagClick?: (tag: string) => void;
+  onLabel?: (id: string, labelId?: string) => void;
 }
 
 const ProfileTable = ({
@@ -26,6 +28,7 @@ const ProfileTable = ({
   onOpen,
   onReset,
   onTagClick,
+  onLabel,
 }: ProfileTableProps) => {
   const startDrag = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('application/mba-profiles', JSON.stringify([id]));
@@ -33,12 +36,12 @@ const ProfileTable = ({
   };
 
   return (
-    <div className="min-w-[900px] px-5 md:px-8">
-      <div className="grid animate-fade-up grid-cols-[1fr_104px_128px_136px_180px_96px] items-center gap-4 border-b border-border px-1 py-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground [animation-delay:40ms]">
+    <div className="min-w-[930px] px-5 md:px-8">
+      <div className="grid animate-fade-up grid-cols-[1fr_104px_140px_120px_170px_96px] items-center gap-4 border-b border-border px-1 py-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground [animation-delay:40ms]">
         <div>Имя</div>
         <div>Состояние</div>
-        <div>Заметки</div>
-        <div>Тип прокси</div>
+        <div>Метка</div>
+        <div>Прокси</div>
         <div>Прокси и место</div>
         <div />
       </div>
@@ -64,7 +67,7 @@ const ProfileTable = ({
             draggable
             onDragStart={(e) => startDrag(e, p.id)}
             style={{ animationDelay: `${80 + i * 40}ms` }}
-            className="group grid animate-fade-up grid-cols-[1fr_104px_128px_136px_180px_96px] items-center gap-4 border-b border-line-soft px-1 transition-colors hover:bg-card/70"
+            className="group grid animate-fade-up grid-cols-[1fr_104px_140px_120px_170px_96px] items-center gap-4 border-b border-line-soft px-1 transition-colors hover:bg-card/70"
           >
             <div className="flex h-[62px] min-w-0 items-center gap-2">
               <Icon
@@ -109,10 +112,25 @@ const ProfileTable = ({
               {STATUS_LABEL[p.status]}
             </div>
 
-            <div className="truncate text-[13px] text-muted-foreground">{p.note}</div>
+            <div className="flex items-center">
+              <LabelPicker
+                value={p.labelId}
+                compact
+                onChange={(labelId) => onLabel?.(p.id, labelId)}
+              />
+            </div>
 
-            <div className="tabular text-[13px] text-muted-foreground">
-              {p.proxyType === '—' ? '—' : `${p.proxyType} · ${p.country}`}
+            <div className="tabular flex items-center gap-1.5 text-[13px] text-muted-foreground">
+              {p.proxyType === '—' ? '—' : p.proxyType}
+              {p.notes && p.notes.length > 0 && (
+                <span
+                  className="flex items-center gap-0.5 text-[11px] text-dot"
+                  title={`Заметок: ${p.notes.length}`}
+                >
+                  <Icon name="MessageSquare" size={10} />
+                  {p.notes.length}
+                </span>
+              )}
             </div>
 
             <div className="tabular flex items-center gap-2 text-[13px] text-muted-foreground">

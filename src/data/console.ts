@@ -1,6 +1,7 @@
 export type ProfileStatus = 'running' | 'ready' | 'paused';
 
 import { FingerprintOverride } from './fingerprint';
+import { ProfileNote } from './labels';
 
 export interface Profile {
   id: string;
@@ -16,6 +17,8 @@ export interface Profile {
   fingerprint?: FingerprintOverride;
   proxyId?: string;
   folderId?: string;
+  labelId?: string;
+  notes?: ProfileNote[];
 }
 
 export const STATUS_LABEL: Record<ProfileStatus, string> = {
@@ -35,7 +38,12 @@ export const profilesSeed: Profile[] = [
     flag: '🇺🇸',
     ip: '46.17.43.24',
     tags: ['карты', 'US'],
+    notes: [
+      { id: 'n1', text: 'Прошёл верификацию по документам, лимиты сняты.', createdAt: new Date(Date.now() - 36e5 * 5).toISOString(), labelId: 'active' },
+      { id: 'n2', text: 'Первый вход, привязал карту.', createdAt: new Date(Date.now() - 864e5 * 6).toISOString() },
+    ],
     lastRun: '2 минуты назад',
+    labelId: 'active',
     folderId: 'f1',
   },
   {
@@ -49,6 +57,7 @@ export const profilesSeed: Profile[] = [
     ip: '217.182.193.11',
     tags: ['доставка'],
     lastRun: 'вчера, 21:40',
+    labelId: 'warmup',
     folderId: 'f1',
   },
   {
@@ -62,6 +71,7 @@ export const profilesSeed: Profile[] = [
     ip: '—',
     tags: ['объявления'],
     lastRun: '3 дня назад',
+    labelId: 'paused',
   },
   {
     id: 'p4',
@@ -74,6 +84,7 @@ export const profilesSeed: Profile[] = [
     ip: '91.214.68.7',
     tags: ['ритейл', 'команда'],
     lastRun: 'вчера, 12:05',
+    labelId: 'limited',
   },
   {
     id: 'p5',
@@ -85,7 +96,11 @@ export const profilesSeed: Profile[] = [
     flag: '🇳🇱',
     ip: '185.44.12.90',
     tags: ['почта'],
+    notes: [
+      { id: 'n3', text: 'Пришло предупреждение о подозрительной активности. Ставлю на паузу на неделю.', createdAt: new Date(Date.now() - 864e5 * 2).toISOString(), labelId: 'limited' },
+    ],
     lastRun: '5 дней назад',
+    labelId: 'check',
   },
   {
     id: 'p6',
@@ -97,7 +112,11 @@ export const profilesSeed: Profile[] = [
     flag: '🇵🇱',
     ip: '83.19.207.42',
     tags: ['реклама'],
+    notes: [
+      { id: 'n4', text: 'Кабинет заблокирован после смены платёжки. Апелляцию отклонили.', createdAt: new Date(Date.now() - 36e5 * 20).toISOString(), labelId: 'banned' },
+    ],
     lastRun: 'сегодня, 09:12',
+    labelId: 'banned',
     folderId: 'f2',
   },
 ];

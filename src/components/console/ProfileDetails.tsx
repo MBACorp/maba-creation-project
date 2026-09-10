@@ -7,6 +7,8 @@ import FingerprintEditor from './FingerprintEditor';
 import ProxyPicker from './ProxyPicker';
 import TagEditor from './TagEditor';
 import CookieManager from './CookieManager';
+import LabelPicker from './LabelPicker';
+import NotesLog from './NotesLog';
 import FingerprintAudit from './FingerprintAudit';
 import Icon from '@/components/ui/icon';
 
@@ -21,6 +23,9 @@ interface ProfileDetailsProps {
   onProxy: (id: string, proxyId?: string) => void;
   onFolder: (id: string, folderId?: string) => void;
   onTags: (id: string, tags: string[]) => void;
+  onLabel: (id: string, labelId?: string) => void;
+  onAddNote: (id: string, text: string, labelId?: string) => void;
+  onDeleteNote: (id: string, noteId: string) => void;
 }
 
 const ProfileDetails = ({
@@ -34,6 +39,9 @@ const ProfileDetails = ({
   onProxy,
   onFolder,
   onTags,
+  onLabel,
+  onAddNote,
+  onDeleteNote,
 }: ProfileDetailsProps) => {
   return (
     <Sheet open={!!profile} onOpenChange={onOpenChange}>
@@ -46,10 +54,20 @@ const ProfileDetails = ({
               </SheetTitle>
             </SheetHeader>
 
-            <dl className="mt-6 space-y-4 text-[14px]">
+            <div className="mt-5 flex items-center justify-between gap-3 rounded-lg border border-border px-3.5 py-3">
+              <div>
+                <p className="font-head text-[13px] font-bold text-foreground">Метка</p>
+                <p className="text-[12px] text-muted-foreground">Состояние аккаунта</p>
+              </div>
+              <LabelPicker
+                value={profile.labelId}
+                onChange={(labelId) => onLabel(profile.id, labelId)}
+              />
+            </div>
+
+            <dl className="mt-5 space-y-4 text-[14px]">
               {[
-                { k: 'Состояние', v: STATUS_LABEL[profile.status] },
-                { k: 'Заметка', v: profile.note },
+                { k: 'Запуск', v: STATUS_LABEL[profile.status] },
                 {
                   k: 'Тип прокси',
                   v: profile.proxyType === '—' ? 'без прокси' : `${profile.proxyType} · ${profile.country}`,
@@ -107,6 +125,13 @@ const ProfileDetails = ({
                 />
               </div>
             </div>
+
+            <NotesLog
+              notes={profile.notes || []}
+              currentLabel={profile.labelId}
+              onAdd={(text, labelId) => onAddNote(profile.id, text, labelId)}
+              onDelete={(noteId) => onDeleteNote(profile.id, noteId)}
+            />
 
             <TagEditor
               tags={profile.tags}
