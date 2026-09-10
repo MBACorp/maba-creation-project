@@ -3,6 +3,7 @@ import Icon from '@/components/ui/icon';
 import {
   AUTO,
   CORES_OPTIONS,
+  DEVICE_SPECS,
   FingerprintOverride,
   GPU_OPTIONS,
   LOCALE_OPTIONS,
@@ -10,6 +11,7 @@ import {
   OS_OPTIONS,
   SCREEN_OPTIONS,
   TIMEZONE_OPTIONS,
+  specOptions,
 } from '@/data/fingerprint';
 
 interface FingerprintEditorProps {
@@ -78,16 +80,45 @@ const FingerprintEditor = ({ value, onSave }: FingerprintEditorProps) => {
   const set = (key: string, v: string) =>
     setDraft((prev) => {
       const next = { ...prev, [key]: v };
+
+      /* Смена системы — сбрасываем всё, что к ней не подходит */
       if (key === 'os' && v !== AUTO) {
         const gpu = GPU_OPTIONS.find((g) => g.value === prev.gpu);
         if (gpu && gpu.os !== 'any' && gpu.os !== v) next.gpu = AUTO;
+        const screen = SCREEN_OPTIONS.find((s) => s.value === prev.screen);
+        if (screen && screen.os !== 'any' && screen.os !== v) next.screen = AUTO;
       }
+
+      /* Смена машины — подтягиваем систему и сбрасываем невозможное железо */
+      if (key === 'gpu' && v !== AUTO) {
+        const gpu = GPU_OPTIONS.find((g) => g.value === v);
+        if (gpu && gpu.os !== 'any') {
+          next.os = gpu.os;
+          const screen = SCREEN_OPTIONS.find((s) => s.value === prev.screen);
+          if (screen && screen.os !== 'any' && screen.os !== gpu.os) next.screen = AUTO;
+        }
+        const spec = DEVICE_SPECS[v];
+        if (spec) {
+          if (!spec.cores.map(String).includes(prev.hardwareConcurrency))
+            next.hardwareConcurrency = AUTO;
+          if (!spec.memory.map(String).includes(prev.deviceMemory)) next.deviceMemory = AUTO;
+        }
+      }
+
       return next;
     });
 
   const gpuOptions = GPU_OPTIONS.filter(
     (g) => draft.os === AUTO || g.os === 'any' || g.os === draft.os,
   );
+
+  const screenOptions = SCREEN_OPTIONS.filter(
+    (s) => draft.os === AUTO || s.os === 'any' || s.os === draft.os,
+  );
+
+  const coresOptions = specOptions(CORES_OPTIONS, draft.gpu, 'cores');
+  const memoryOptions = specOptions(MEMORY_OPTIONS, draft.gpu, 'memory');
+  const deviceLabel = GPU_OPTIONS.find((g) => g.value === draft.gpu && g.value !== AUTO)?.label;
 
   const changed = Object.values(draft).filter((v) => v !== AUTO).length;
   const geoAuto = Boolean(
@@ -150,16 +181,22 @@ const FingerprintEditor = ({ value, onSave }: FingerprintEditorProps) => {
           <div className="space-y-3.5">
             <Field label="Система" value={draft.os} options={OS_OPTIONS} onChange={(v) => set('os', v)} />
             <Field
-              label="Разрешение экрана"
-              value={draft.screen}
-              options={SCREEN_OPTIONS}
-              onChange={(v) => set('screen', v)}
-            />
-            <Field
-              label="Видеокарта"
+              label="Устройство и видеокарта"
               value={draft.gpu}
               options={gpuOptions}
               onChange={(v) => set('gpu', v)}
+            />
+            {deviceLabel && (
+              <p className="-mt-1 flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                <Icon name="Cpu" size={12} className="mt-0.5 shrink-0 text-primary" />
+                Экран, память и шрифты подбираются как у этой модели
+              </p>
+            )}
+            <Field
+              label="Разрешение экрана"
+              value={draft.screen}
+              options={screenOptions}
+              onChange={(v) => set('screen', v)}
             />
             <div className={geoAuto ? 'rounded-lg border border-primary/25 bg-primary/5 p-3' : undefined}>
               {geoAuto && (
@@ -187,13 +224,13 @@ const FingerprintEditor = ({ value, onSave }: FingerprintEditorProps) => {
               <Field
                 label="Процессор"
                 value={draft.hardwareConcurrency}
-                options={CORES_OPTIONS}
+                options={coresOptions}
                 onChange={(v) => set('hardwareConcurrency', v)}
               />
               <Field
                 label="Память"
                 value={draft.deviceMemory}
-                options={MEMORY_OPTIONS}
+                options={memoryOptions}
                 onChange={(v) => set('deviceMemory', v)}
               />
             </div>
@@ -218,8 +255,9 @@ const FingerprintEditor = ({ value, onSave }: FingerprintEditorProps) => {
 
           <p className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-muted-foreground">
             <Icon name="Info" size={12} className="mt-0.5 shrink-0 text-primary" />
-            Пустые поля подбираются автоматически и остаются постоянными для профиля.
-            Изменения применятся при следующем запуске.
+            Отпечаток собирается комплектом реального устройства — несовместимые
+            сочетания недоступны. Пустые поля подбираются автоматически и остаются
+            постоянными для профиля.
           </p>
         </div>
       )}

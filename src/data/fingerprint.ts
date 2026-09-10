@@ -18,25 +18,45 @@ export const OS_OPTIONS = [
 ];
 
 export const SCREEN_OPTIONS = [
-  { value: AUTO, label: 'Автоматически' },
-  { value: '1920x1080', label: '1920 × 1080 — Full HD' },
-  { value: '1536x864', label: '1536 × 864' },
-  { value: '1440x900', label: '1440 × 900' },
-  { value: '1366x768', label: '1366 × 768' },
-  { value: '2560x1440', label: '2560 × 1440 — 2K' },
+  { value: AUTO, label: 'Автоматически', os: 'any' },
+  { value: '1920x1080', label: '1920 × 1080 — Full HD', os: 'win' },
+  { value: '1536x864', label: '1536 × 864 — ноутбук', os: 'win' },
+  { value: '1366x768', label: '1366 × 768 — ноутбук', os: 'win' },
+  { value: '1600x900', label: '1600 × 900', os: 'win' },
+  { value: '2560x1440', label: '2560 × 1440 — 2K', os: 'win' },
+  { value: '3840x2160', label: '3840 × 2160 — 4K', os: 'win' },
+  { value: '1470x956', label: '1470 × 956 — MacBook Air', os: 'mac' },
+  { value: '1512x982', label: '1512 × 982 — MacBook 14"', os: 'mac' },
+  { value: '1728x1117', label: '1728 × 1117 — MacBook 16"', os: 'mac' },
 ];
 
+/*
+ * Видеокарты соответствуют реальным комплектам устройств.
+ * Выбор видеокарты задаёт всю машину целиком: экран, ядра, память, шрифты.
+ */
 export const GPU_OPTIONS = [
   { value: AUTO, label: 'Автоматически', os: 'any' },
-  { value: 'nvidia-rtx3060', label: 'NVIDIA GeForce RTX 3060', os: 'win' },
-  { value: 'nvidia-gtx1650', label: 'NVIDIA GeForce GTX 1650', os: 'win' },
-  { value: 'intel-uhd630', label: 'Intel UHD Graphics 630', os: 'win' },
-  { value: 'intel-iris', label: 'Intel Iris Xe Graphics', os: 'win' },
-  { value: 'amd-rx6600', label: 'AMD Radeon RX 6600', os: 'win' },
-  { value: 'apple-m1', label: 'Apple M1', os: 'mac' },
-  { value: 'apple-m2pro', label: 'Apple M2 Pro', os: 'mac' },
-  { value: 'apple-m3', label: 'Apple M3', os: 'mac' },
+  { value: 'nvidia-rtx3060', label: 'NVIDIA RTX 3060 — игровой ПК', os: 'win' },
+  { value: 'nvidia-gtx1650', label: 'NVIDIA GTX 1650 — домашний ПК', os: 'win' },
+  { value: 'intel-uhd630', label: 'Intel UHD 630 — офисный ПК', os: 'win' },
+  { value: 'intel-iris', label: 'Intel Iris Xe — ноутбук', os: 'win' },
+  { value: 'amd-rx6600', label: 'AMD RX 6600 — игровой ПК', os: 'win' },
+  { value: 'apple-m1', label: 'Apple M1 — MacBook Air', os: 'mac' },
+  { value: 'apple-m2pro', label: 'Apple M2 Pro — MacBook Pro', os: 'mac' },
+  { value: 'apple-m3', label: 'Apple M3 — MacBook Pro', os: 'mac' },
 ];
+
+/* Допустимые ядра и память для каждой машины — чтобы не выпало 4 ядра у M2 Pro */
+export const DEVICE_SPECS: Record<string, { cores: number[]; memory: number[] }> = {
+  'nvidia-rtx3060': { cores: [8, 12, 16], memory: [16, 32] },
+  'nvidia-gtx1650': { cores: [4, 6, 8], memory: [8, 16] },
+  'intel-uhd630': { cores: [4, 6, 8], memory: [8, 16] },
+  'intel-iris': { cores: [8, 12], memory: [8, 16] },
+  'amd-rx6600': { cores: [8, 12], memory: [16, 32] },
+  'apple-m1': { cores: [8], memory: [8, 16] },
+  'apple-m2pro': { cores: [10, 12], memory: [16, 32] },
+  'apple-m3': { cores: [8, 11], memory: [16, 24] },
+};
 
 export const TIMEZONE_OPTIONS = [
   { value: AUTO, label: 'По стране прокси' },
@@ -96,18 +116,33 @@ export const LOCALE_OPTIONS = [
 export const CORES_OPTIONS = [
   { value: AUTO, label: 'Автоматически' },
   { value: '4', label: '4 ядра' },
+  { value: '6', label: '6 ядер' },
   { value: '8', label: '8 ядер' },
+  { value: '10', label: '10 ядер' },
+  { value: '11', label: '11 ядер' },
   { value: '12', label: '12 ядер' },
   { value: '16', label: '16 ядер' },
 ];
 
 export const MEMORY_OPTIONS = [
   { value: AUTO, label: 'Автоматически' },
-  { value: '4', label: '4 ГБ' },
   { value: '8', label: '8 ГБ' },
   { value: '16', label: '16 ГБ' },
+  { value: '24', label: '24 ГБ' },
   { value: '32', label: '32 ГБ' },
 ];
+
+/* Отфильтровать варианты под выбранную машину, чтобы не собрать невозможную конфигурацию */
+export const specOptions = (
+  options: { value: string; label: string }[],
+  gpu: string,
+  key: 'cores' | 'memory',
+) => {
+  const spec = DEVICE_SPECS[gpu];
+  if (!spec) return options;
+  const allowed = spec[key].map(String);
+  return options.filter((o) => o.value === AUTO || allowed.includes(o.value));
+};
 
 export const countOverrides = (fp?: FingerprintOverride) =>
   fp
