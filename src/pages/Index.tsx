@@ -10,7 +10,8 @@ import ApiPanel from '@/components/console/ApiPanel';
 import AndroidPanel from '@/components/console/AndroidPanel';
 import AddProfileDialog from '@/components/console/AddProfileDialog';
 import ProfileDetails from '@/components/console/ProfileDetails';
-import { Profile, SectionId, profilesSeed } from '@/data/console';
+import { Profile, SectionId } from '@/data/console';
+import { useProfiles } from '@/hooks/useProfiles';
 
 const SECTION_META: Record<SectionId, { eyebrow: string; title: string }> = {
   profiles: { eyebrow: 'Профили браузера', title: 'Все профили' },
@@ -23,7 +24,7 @@ const SECTION_META: Record<SectionId, { eyebrow: string; title: string }> = {
 const LIMIT = 10;
 
 const Index = () => {
-  const [profiles, setProfiles] = useState<Profile[]>(profilesSeed);
+  const { profiles, busy, desktop, toggleProfile, createProfile } = useProfiles(LIMIT);
   const [section, setSection] = useState<SectionId>('profiles');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterId>('all');
@@ -47,39 +48,18 @@ const Index = () => {
 
   const runningCount = profiles.filter((p) => p.status === 'running').length;
 
-  const toggleProfile = (id: string) => {
-    setProfiles((prev) =>
-      prev.map((p) => {
-        if (p.id !== id) return p;
-        const next: Profile =
-          p.status === 'running'
-            ? { ...p, status: 'ready', lastRun: 'только что' }
-            : { ...p, status: 'running', lastRun: 'сейчас' };
-        toast(next.status === 'running' ? `Профиль «${p.name}» запущен` : `Профиль «${p.name}» остановлен`);
-        return next;
-      }),
-    );
-    setDetails((d) =>
-      d && d.id === id
-        ? { ...d, status: d.status === 'running' ? 'ready' : 'running' }
-        : d,
-    );
-  };
-
-  const createProfile = (data: Omit<Profile, 'id'>) => {
-    if (profiles.length >= LIMIT) {
-      toast('Достигнут лимит тарифа Professional');
-      return;
-    }
-    setProfiles((prev) => [...prev, { ...data, id: `p${Date.now()}` }]);
-    toast(`Профиль «${data.name}» создан`);
-  };
-
   const meta = SECTION_META[section];
+  const activeDetails = details
+    ? profiles.find((p) => p.id === details.id) || details
+    : null;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
-      <TopBar crumb={meta.title} onInvite={() => toast('Ссылка-приглашение скопирована')} />
+      <TopBar
+        crumb={meta.title}
+        desktop={desktop}
+        onInvite={() => toast('Ссылка-приглашение скопирована')}
+      />
 
       <div className="flex min-h-0 flex-1">
         <Sidebar
@@ -116,6 +96,7 @@ const Index = () => {
                 profiles={visible}
                 total={profiles.length}
                 runningCount={runningCount}
+                busyId={busy}
                 onToggle={toggleProfile}
                 onOpen={setDetails}
                 onReset={() => {
@@ -134,7 +115,7 @@ const Index = () => {
 
       <AddProfileDialog open={addOpen} onOpenChange={setAddOpen} onCreate={createProfile} />
       <ProfileDetails
-        profile={details}
+        profile={activeDetails}
         onOpenChange={(v) => !v && setDetails(null)}
         onToggle={toggleProfile}
       />

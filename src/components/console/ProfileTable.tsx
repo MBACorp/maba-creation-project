@@ -6,6 +6,7 @@ interface ProfileTableProps {
   profiles: Profile[];
   total: number;
   runningCount: number;
+  busyId?: string | null;
   onToggle: (id: string) => void;
   onOpen: (p: Profile) => void;
   onReset: () => void;
@@ -15,6 +16,7 @@ const ProfileTable = ({
   profiles,
   total,
   runningCount,
+  busyId,
   onToggle,
   onOpen,
   onReset,
@@ -86,14 +88,16 @@ const ProfileTable = ({
 
             <button
               onClick={() => onToggle(p.id)}
+              disabled={busyId === p.id}
               className={cn(
-                'w-[84px] rounded-md border py-1.5 text-center text-[13px] font-semibold transition-colors',
+                'flex w-[84px] items-center justify-center gap-1.5 rounded-md border py-1.5 text-center text-[13px] font-semibold transition-colors disabled:opacity-60',
                 running
                   ? 'border-primary bg-primary text-primary-foreground'
                   : 'border-primary/55 text-primary hover:bg-primary/10',
               )}
             >
-              {running ? 'Стоп' : 'Старт'}
+              {busyId === p.id && <Icon name="Loader" size={12} className="animate-spin" />}
+              {busyId === p.id ? '' : running ? 'Стоп' : 'Старт'}
             </button>
           </div>
         );

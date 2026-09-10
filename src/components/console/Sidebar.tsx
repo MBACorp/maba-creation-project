@@ -100,21 +100,23 @@ const Sidebar = ({ active, onSelect, onAdd, used, limit, open, onClose }: Sideba
         </nav>
 
         <div className="mt-auto space-y-3">
-          <div className="animate-fade-up rounded-lg border border-border p-3.5 [animation-delay:120ms]">
-            <div className="flex items-start gap-3">
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ai/15 text-ai">
-                <Icon name="Smartphone" size={15} />
-              </div>
-              <div>
-                <p className="font-head text-[13px] font-bold leading-snug text-foreground">
-                  Cloud Android профили
-                </p>
-                <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
-                  Своё Android-устройство в облаке для мобильных сценариев.
-                </p>
-              </div>
+          <a
+            href="/mba-antidetect.zip"
+            download
+            className="flex animate-fade-up items-start gap-3 rounded-lg border border-primary/30 p-3.5 transition-colors hover:bg-primary/5 [animation-delay:120ms]"
+          >
+            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+              <Icon name="MonitorDown" fallback="Download" size={15} />
             </div>
-          </div>
+            <div>
+              <p className="font-head text-[13px] font-bold leading-snug text-foreground">
+                Приложение для ПК
+              </p>
+              <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
+                Антидетект-ядро, изоляция профилей, запуск по-настоящему.
+              </p>
+            </div>
+          </a>
 
           <div className="animate-fade-up rounded-lg border border-border p-3.5 [animation-delay:160ms]">
             <div className="flex items-baseline justify-between">
