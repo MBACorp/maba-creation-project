@@ -94,6 +94,19 @@ interface MbaBridge {
   listProxies: () => Promise<unknown[]>;
   saveProxy: (proxy: unknown) => Promise<unknown>;
   deleteProxy: (id: string) => Promise<boolean>;
+  checkProxy: (proxy: unknown) => Promise<{
+    ok: boolean;
+    ip?: string;
+    country?: string;
+    countryCode?: string;
+    city?: string;
+    provider?: string;
+    latency?: number;
+    kind?: string;
+    leaking?: boolean;
+    error?: string;
+  }>;
+  myIp: () => Promise<string | null>;
   appInfo: () => Promise<{ version: string; dataPath: string; platform: string }>;
   openDataFolder: () => Promise<string>;
   onProfileStarted: (cb: (id: string) => void) => void;

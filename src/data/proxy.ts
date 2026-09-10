@@ -141,9 +141,57 @@ export const parseProxyList = (text: string) => {
 export const proxyLabel = (p: ProxyRecord) =>
   p.label || `${p.host}:${p.port}`;
 
+/*
+ * В приложении проверяем прокси прямо с компьютера пользователя.
+ * Облачная проверка врёт: прокси часто пускает только с домашнего IP,
+ * а проверяющий сервер видит другой адрес и объявляет живой прокси мёртвым.
+ */
+const checkLocally = async (proxies: ProxyRecord[]): Promise<CheckResult[]> => {
+  const api = window.MBA!;
+  const results: CheckResult[] = [];
+
+  /* По три штуки за раз, чтобы не перегружать канал */
+  for (let i = 0; i < proxies.length; i += 3) {
+    const batch = proxies.slice(i, i + 3);
+    const part = await Promise.all(
+      batch.map(async (p) => {
+        const r = await api.checkProxy({
+          proxyHost: `${p.host}:${p.port}`,
+          proxyType: p.type,
+          proxyUser: p.user,
+          proxyPass: p.password,
+        });
+        if (r.ok && r.leaking) {
+          return {
+            id: p.id,
+            ok: false,
+            error: 'Прокси не меняет ваш IP — трафик идёт напрямую',
+          } as CheckResult;
+        }
+        return {
+          id: p.id,
+          ok: r.ok,
+          ip: r.ip,
+          country: r.country,
+          city: r.city,
+          org: r.provider,
+          latency: r.latency,
+          error: r.error,
+        } as CheckResult;
+      }),
+    );
+    results.push(...part);
+  }
+  return results;
+};
+
 export const checkProxies = async (
   proxies: ProxyRecord[],
 ): Promise<CheckResult[]> => {
+  if (typeof window !== 'undefined' && window.MBA?.checkProxy) {
+    return checkLocally(proxies);
+  }
+
   const res = await fetch(PROXY_CHECK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
