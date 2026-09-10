@@ -15,6 +15,7 @@ import {
   tzLabel,
   localeLabel,
   specOptions,
+  screenOptionsFor,
 } from '@/data/fingerprint';
 
 interface FingerprintEditorProps {
@@ -45,9 +46,13 @@ const Field = ({
 }: {
   label: string;
   value: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; model?: boolean }[];
   onChange: (v: string) => void;
-}) => (
+}) => {
+  /* Готовые модели выносим отдельным разделом — их выбирают чаще всего */
+  const models = options.filter((o) => o.model);
+  const rest = options.filter((o) => !o.model);
+  return (
   <label className="block">
     <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
       {label}
@@ -62,11 +67,39 @@ const Field = ({
             : 'border-primary/40 text-foreground'
         }`}
       >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
+        {models.length ? (
+          <>
+            {rest
+              .filter((o) => o.value === AUTO)
+              .map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            <optgroup label="Готовые модели ноутбуков">
+              {models.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Отдельные видеокарты">
+              {rest
+                .filter((o) => o.value !== AUTO)
+                .map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+            </optgroup>
+          </>
+        ) : (
+          options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))
+        )}
       </select>
       <Icon
         name="ChevronDown"
@@ -75,7 +108,8 @@ const Field = ({
       />
     </div>
   </label>
-);
+  );
+};
 
 const FingerprintEditor = ({ value, onSave, proxyCountry, proxyCity }: FingerprintEditorProps) => {
   const [open, setOpen] = useState(false);
@@ -118,13 +152,14 @@ const FingerprintEditor = ({ value, onSave, proxyCountry, proxyCity }: Fingerpri
     (g) => draft.os === AUTO || g.os === 'any' || g.os === draft.os,
   );
 
-  const screenOptions = SCREEN_OPTIONS.filter(
-    (s) => draft.os === AUTO || s.os === 'any' || s.os === draft.os,
-  );
+  const screenOptions = screenOptionsFor(SCREEN_OPTIONS, draft.gpu, draft.os);
 
   const coresOptions = specOptions(CORES_OPTIONS, draft.gpu, 'cores');
   const memoryOptions = specOptions(MEMORY_OPTIONS, draft.gpu, 'memory');
-  const deviceLabel = GPU_OPTIONS.find((g) => g.value === draft.gpu && g.value !== AUTO)?.label;
+  const selectedGpu = GPU_OPTIONS.find((g) => g.value === draft.gpu && g.value !== AUTO);
+  const deviceLabel = selectedGpu?.label;
+  /* У готовых моделей все параметры уже подобраны под конкретный ноутбук */
+  const isModel = Boolean((selectedGpu as { model?: boolean } | undefined)?.model);
 
   const changed = Object.values(draft).filter((v) => v !== AUTO).length;
 
@@ -210,7 +245,9 @@ const FingerprintEditor = ({ value, onSave, proxyCountry, proxyCity }: Fingerpri
             {deviceLabel && (
               <p className="-mt-1 flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
                 <Icon name="Cpu" size={12} className="mt-0.5 shrink-0 text-primary" />
-                Экран, память и шрифты подбираются как у этой модели
+                {isModel
+                  ? 'Готовая модель: экран, видеокарта, ядра, память и шрифты уже согласованы между собой'
+                  : 'Экран, память и шрифты подбираются как у этой модели'}
               </p>
             )}
             <Field
