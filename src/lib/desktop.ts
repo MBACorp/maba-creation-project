@@ -1,5 +1,17 @@
 import { Profile } from '@/data/console';
 
+export interface UpdateState {
+  status: 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'postponed' | 'error';
+  version?: string;
+  percent?: number;
+  loaded?: number;
+  total?: number;
+  notes?: string;
+  size?: number;
+  current?: string;
+  error?: string;
+}
+
 export interface Fingerprint {
   os: string;
   userAgent: string;
@@ -113,6 +125,8 @@ interface MbaBridge {
     version?: string;
     error?: string;
   }>;
+  updateState: () => Promise<UpdateState>;
+  onUpdateState: (cb: (state: UpdateState) => void) => void;
   appInfo: () => Promise<{ version: string; dataPath: string; platform: string }>;
   openDataFolder: () => Promise<string>;
   onProfileStarted: (cb: (id: string) => void) => void;

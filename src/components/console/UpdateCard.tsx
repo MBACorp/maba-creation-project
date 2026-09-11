@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react';
 import Icon from '@/components/ui/icon';
-import { bridge, isDesktop } from '@/lib/desktop';
-
-type Stage = 'idle' | 'checking' | 'fresh' | 'found' | 'error';
+import { bridge, isDesktop, type UpdateState } from '@/lib/desktop';
 
 const UpdateCard = () => {
   const [version, setVersion] = useState<string>('');
-  const [stage, setStage] = useState<Stage>('idle');
-  const [note, setNote] = useState('');
+  const [state, setState] = useState<UpdateState>({ status: 'idle' });
 
   useEffect(() => {
     const api = bridge();
     if (!api) return;
+
     api
       .appInfo()
       .then((info) => setVersion(info.version))
       .catch(() => undefined);
+
+    api.updateState().then(setState).catch(() => undefined);
+    api.onUpdateState(setState);
   }, []);
 
   if (!isDesktop()) return null;
@@ -23,40 +24,39 @@ const UpdateCard = () => {
   const check = async () => {
     const api = bridge();
     if (!api) return;
+    setState({ status: 'checking' });
+    await api.checkUpdate({ silent: false }).catch(() => undefined);
+  };
 
-    setStage('checking');
-    setNote('Проверяю…');
+  const busy = state.status === 'checking' || state.status === 'downloading';
 
-    try {
-      const res = (await api.checkUpdate({ silent: true })) as {
-        available?: boolean;
-        version?: string;
-        error?: string;
-      };
-
-      if (res?.error) {
-        setStage('error');
-        setNote('Не удалось проверить');
-        return;
-      }
-
-      if (res?.available) {
-        setStage('found');
-        setNote(`Доступна версия ${res.version}`);
-        return;
-      }
-
-      setStage('fresh');
-      setNote('Установлена последняя версия');
-    } catch (e) {
-      setStage('error');
-      setNote('Не удалось проверить');
+  const message = () => {
+    switch (state.status) {
+      case 'checking':
+        return 'Проверяю наличие обновлений…';
+      case 'available':
+        return `Доступна версия ${state.version}`;
+      case 'downloading':
+        return `Загружаю версию ${state.version} — ${state.percent ?? 0}%`;
+      case 'ready':
+        return `Версия ${state.version} готова к установке`;
+      case 'postponed':
+        return `Версия ${state.version} отложена`;
+      case 'error':
+        return state.error || 'Не удалось проверить обновления';
+      default:
+        return state.current ? 'Установлена последняя версия' : '';
     }
   };
 
-  const reloadUi = () => {
-    window.location.reload();
-  };
+  const tone =
+    state.status === 'error'
+      ? 'text-destructive'
+      : state.status === 'available' || state.status === 'ready'
+        ? 'text-primary'
+        : 'text-muted-foreground';
+
+  const note = message();
 
   return (
     <div className="animate-fade-up rounded-lg border border-border p-3.5 [animation-delay:140ms]">
@@ -65,37 +65,34 @@ const UpdateCard = () => {
         {version && <span className="text-[11px] text-muted-foreground">v{version}</span>}
       </div>
 
-      {note && (
-        <p
-          className={`mt-1.5 text-[11px] leading-snug ${
-            stage === 'found'
-              ? 'text-primary'
-              : stage === 'error'
-                ? 'text-destructive'
-                : 'text-muted-foreground'
-          }`}
-        >
-          {note}
-        </p>
+      {note && <p className={`mt-1.5 text-[11px] leading-snug ${tone}`}>{note}</p>}
+
+      {state.status === 'downloading' && (
+        <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${state.percent ?? 0}%` }}
+          />
+        </div>
       )}
 
       <div className="mt-2.5 flex gap-2">
         <button
           onClick={check}
-          disabled={stage === 'checking'}
+          disabled={busy}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-[12px] text-foreground transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-50"
         >
           <Icon
-            name={stage === 'checking' ? 'Loader' : 'RefreshCw'}
+            name={busy ? 'Loader' : 'RefreshCw'}
             fallback="RefreshCw"
             size={13}
-            className={stage === 'checking' ? 'animate-spin' : ''}
+            className={busy ? 'animate-spin' : ''}
           />
-          Проверить
+          {state.status === 'downloading' ? 'Загрузка…' : 'Проверить'}
         </button>
 
         <button
-          onClick={reloadUi}
+          onClick={() => window.location.reload()}
           title="Загрузить свежую версию интерфейса"
           className="flex items-center justify-center rounded-md border border-border px-2.5 py-1.5 text-foreground transition-colors hover:border-primary/40 hover:text-primary"
         >
