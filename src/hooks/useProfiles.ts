@@ -29,6 +29,7 @@ interface ProxyLike {
 export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
   const [profiles, setProfiles] = useState<Profile[]>(profilesSeed);
   const [busy, setBusy] = useState<string | null>(null);
+  const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const desktop = isDesktop();
 
   const reload = useCallback(async () => {
@@ -120,6 +121,65 @@ export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
         }
       } finally {
         setBusy(null);
+      }
+    },
+    [profiles, proxies],
+  );
+
+  /* Запуск пачки профилей: окна раскладываются по экрану сеткой */
+  const startMany = useCallback(
+    async (ids: string[]) => {
+      const list = profiles.filter((p) => ids.includes(p.id) && p.status !== 'running');
+      if (!list.length) {
+        toast('Выбранные профили уже запущены');
+        return;
+      }
+
+      const api = bridge();
+
+      if (!api) {
+        setProfiles((prev) =>
+          prev.map((p) =>
+            ids.includes(p.id) ? { ...p, status: 'running', lastRun: 'сейчас' } : p,
+          ),
+        );
+        toast(`Запущено профилей: ${list.length}`, {
+          description: 'Демо-режим в браузере. В приложении откроются настоящие окна.',
+        });
+        return;
+      }
+
+      setBulk({ done: 0, total: list.length });
+      api.onStartProgress((p) => setBulk(p));
+
+      try {
+        const payload = list.map((profile) => {
+          const proxy = proxies.find((x) => x.id === profile.proxyId);
+          return {
+            ...profile,
+            proxyHost: proxy ? `${proxy.host}:${proxy.port}` : undefined,
+            proxyUser: proxy?.user,
+            proxyPass: proxy?.password,
+            proxyType: proxy?.type || profile.proxyType,
+          } as Profile;
+        });
+
+        const res = await api.startProfiles(payload);
+        const failed = (res.results || []).filter((r) => !r.ok);
+
+        if (res.started) {
+          toast(`Запущено профилей: ${res.started} из ${res.total}`, {
+            description: failed.length
+              ? `Не удалось: ${failed.length}. Первая причина: ${failed[0].error}`
+              : 'Окна разложены по экрану',
+          });
+        } else {
+          toast.error('Не удалось запустить профили', {
+            description: failed[0]?.error || res.error,
+          });
+        }
+      } finally {
+        setBulk(null);
       }
     },
     [profiles, proxies],
@@ -415,8 +475,10 @@ export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
   return {
     profiles,
     busy,
+    bulk,
     desktop,
     toggleProfile,
+    startMany,
     createProfile,
     deleteProfile,
     setFingerprint,

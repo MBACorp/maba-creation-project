@@ -34,6 +34,14 @@ export interface StartResult {
   cookies?: number;
 }
 
+export interface BulkStartResult {
+  ok: boolean;
+  error?: string;
+  started?: number;
+  total?: number;
+  results?: { id: string; ok: boolean; error?: string; alreadyRunning?: boolean }[];
+}
+
 export interface AuditCheck {
   name: string;
   title: string;
@@ -69,6 +77,8 @@ interface MbaBridge {
   saveProfile: (profile: Profile) => Promise<Profile>;
   deleteProfile: (id: string) => Promise<boolean>;
   startProfile: (profile: Profile) => Promise<StartResult>;
+  startProfiles: (list: Profile[]) => Promise<BulkStartResult>;
+  onStartProgress: (cb: (p: { done: number; total: number }) => void) => void;
   stopProfile: (id: string) => Promise<{ ok: boolean }>;
   auditProfile: (payload: { id: string; site: string }) => Promise<AuditReport>;
 

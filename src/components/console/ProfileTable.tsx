@@ -15,6 +15,9 @@ interface ProfileTableProps {
   onReset: () => void;
   onTagClick?: (tag: string) => void;
   onLabel?: (id: string, labelId?: string) => void;
+  selected?: string[];
+  onSelect?: (id: string) => void;
+  onSelectAll?: () => void;
 }
 
 const ProfileTable = ({
@@ -29,15 +32,34 @@ const ProfileTable = ({
   onReset,
   onTagClick,
   onLabel,
+  selected = [],
+  onSelect,
+  onSelectAll,
 }: ProfileTableProps) => {
+  const picked = new Set(selected);
+  const allPicked = profiles.length > 0 && profiles.every((p) => picked.has(p.id));
   const startDrag = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('application/mba-profiles', JSON.stringify([id]));
     e.dataTransfer.effectAllowed = 'move';
   };
 
   return (
-    <div className="min-w-[930px] px-5 md:px-8">
-      <div className="grid animate-fade-up grid-cols-[1fr_104px_140px_120px_170px_96px] items-center gap-4 border-b border-border px-1 py-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground [animation-delay:40ms]">
+    <div className="min-w-[972px] px-5 md:px-8">
+      <div className="grid animate-fade-up grid-cols-[26px_1fr_104px_140px_120px_170px_96px] items-center gap-4 border-b border-border px-1 py-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground [animation-delay:40ms]">
+        <div className="flex items-center">
+          {onSelectAll && (
+            <button
+              onClick={onSelectAll}
+              title={allPicked ? 'Снять выделение' : 'Выбрать все'}
+              className={cn(
+                'flex h-[15px] w-[15px] items-center justify-center rounded border transition-colors',
+                allPicked ? 'border-primary bg-primary text-background' : 'border-border hover:border-primary/50',
+              )}
+            >
+              {allPicked && <Icon name="Check" size={10} />}
+            </button>
+          )}
+        </div>
         <div>Имя</div>
         <div>Состояние</div>
         <div>Метка</div>
@@ -61,14 +83,35 @@ const ProfileTable = ({
 
       {profiles.map((p, i) => {
         const running = p.status === 'running';
+        const isPicked = picked.has(p.id);
         return (
           <div
             key={p.id}
             draggable
             onDragStart={(e) => startDrag(e, p.id)}
             style={{ animationDelay: `${80 + i * 40}ms` }}
-            className="group grid animate-fade-up grid-cols-[1fr_104px_140px_120px_170px_96px] items-center gap-4 border-b border-line-soft px-1 transition-colors hover:bg-card/70"
+            className={cn(
+              'group grid animate-fade-up grid-cols-[26px_1fr_104px_140px_120px_170px_96px] items-center gap-4 border-b border-line-soft px-1 transition-colors',
+              isPicked ? 'bg-primary/[0.07]' : 'hover:bg-card/70',
+            )}
           >
+            <div className="flex items-center">
+              {onSelect && (
+                <button
+                  onClick={() => onSelect(p.id)}
+                  title={isPicked ? 'Убрать из выбора' : 'Выбрать профиль'}
+                  className={cn(
+                    'flex h-[15px] w-[15px] items-center justify-center rounded border transition-colors',
+                    isPicked
+                      ? 'border-primary bg-primary text-background'
+                      : 'border-border hover:border-primary/50',
+                  )}
+                >
+                  {isPicked && <Icon name="Check" size={10} />}
+                </button>
+              )}
+            </div>
+
             <div className="flex h-[62px] min-w-0 items-center gap-2">
               <Icon
                 name="GripVertical"

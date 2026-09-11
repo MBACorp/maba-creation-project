@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import TopBar from '@/components/console/TopBar';
+import BulkBar from '@/components/console/BulkBar';
 import Sidebar from '@/components/console/Sidebar';
 import Toolbar, { FilterId } from '@/components/console/Toolbar';
 import ProfileTable from '@/components/console/ProfileTable';
@@ -29,6 +30,7 @@ const SECTION_META: Record<SectionId, { eyebrow: string; title: string }> = {
 const LIMIT = 10;
 
 const Index = () => {
+  const [picked, setPicked] = useState<string[]>([]);
   const syncGeoRef = useRef<((list: ProxyRecord[]) => void) | null>(null);
   const handleChecked = useCallback((list: ProxyRecord[]) => {
     syncGeoRef.current?.(list);
@@ -45,8 +47,10 @@ const Index = () => {
   const {
     profiles,
     busy,
+    bulk,
     desktop,
     toggleProfile,
+    startMany,
     createProfile,
     setFingerprint,
     setProxy,
@@ -208,6 +212,19 @@ const Index = () => {
                 onOpen={setDetails}
                 onTagClick={(t) => setTag(tag === t ? undefined : t)}
                 onLabel={setLabel}
+                selected={picked}
+                onSelect={(id) =>
+                  setPicked((prev) =>
+                    prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+                  )
+                }
+                onSelectAll={() =>
+                  setPicked((prev) =>
+                    visible.length > 0 && visible.every((p) => prev.includes(p.id))
+                      ? []
+                      : visible.map((p) => p.id),
+                  )
+                }
                 onReset={() => {
                   setQuery('');
                   setFilter('all');
@@ -245,6 +262,13 @@ const Index = () => {
           folder !== ALL_FOLDER && folder !== NO_FOLDER ? folder : undefined
         }
       />
+      <BulkBar
+        count={picked.length}
+        progress={bulk}
+        onStart={() => startMany(picked)}
+        onClear={() => setPicked([])}
+      />
+
       <ProfileDetails
         profile={activeDetails}
         proxies={proxies}
