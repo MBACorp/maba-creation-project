@@ -108,6 +108,11 @@ interface MbaBridge {
     error?: string;
   }>;
   myIp: () => Promise<string | null>;
+  checkUpdate: (opts?: { silent?: boolean }) => Promise<{
+    available?: boolean;
+    version?: string;
+    error?: string;
+  }>;
   appInfo: () => Promise<{ version: string; dataPath: string; platform: string }>;
   openDataFolder: () => Promise<string>;
   onProfileStarted: (cb: (id: string) => void) => void;

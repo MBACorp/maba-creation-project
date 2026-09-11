@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import Icon from '@/components/ui/icon';
 import { navItems, SectionId } from '@/data/console';
+import UpdateCard from '@/components/console/UpdateCard';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {
@@ -125,6 +126,8 @@ const Sidebar = ({
               Приложение для ПК
             </p>
           </a>
+
+          <UpdateCard />
 
           <div className="animate-fade-up rounded-lg border border-border p-3.5 [animation-delay:160ms]">
             <div className="flex items-baseline justify-between">
