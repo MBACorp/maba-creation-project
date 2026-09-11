@@ -185,6 +185,47 @@ export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
     [profiles, proxies],
   );
 
+  /* Остановка пачки профилей. Пустой список — закрыть все запущенные */
+  const stopMany = useCallback(
+    async (ids?: string[]) => {
+      const target = profiles.filter(
+        (p) => p.status === 'running' && (!ids || !ids.length || ids.includes(p.id)),
+      );
+      if (!target.length) {
+        toast('Запущенных профилей нет');
+        return;
+      }
+
+      const api = bridge();
+
+      if (!api) {
+        const stop = new Set(target.map((p) => p.id));
+        setProfiles((prev) =>
+          prev.map((p) => (stop.has(p.id) ? { ...p, status: 'ready', lastRun: 'только что' } : p)),
+        );
+        toast(`Остановлено профилей: ${target.length}`, {
+          description: 'Демо-режим в браузере.',
+        });
+        return;
+      }
+
+      setBulk({ done: 0, total: target.length });
+
+      try {
+        const res = await api.stopProfiles(target.map((p) => p.id));
+        toast(
+          res.stopped
+            ? `Остановлено профилей: ${res.stopped}`
+            : 'Не удалось остановить профили',
+          { description: res.stopped ? 'Куки сохранены' : undefined },
+        );
+      } finally {
+        setBulk(null);
+      }
+    },
+    [profiles],
+  );
+
   const createProfile = useCallback(
     async (data: Omit<Profile, 'id'>) => {
       if (profiles.length >= limit) {
@@ -479,6 +520,7 @@ export const useProfiles = (limit: number, proxies: ProxyLike[] = []) => {
     desktop,
     toggleProfile,
     startMany,
+    stopMany,
     createProfile,
     deleteProfile,
     setFingerprint,

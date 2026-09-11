@@ -51,6 +51,7 @@ const Index = () => {
     desktop,
     toggleProfile,
     startMany,
+    stopMany,
     createProfile,
     setFingerprint,
     setProxy,
@@ -264,8 +265,10 @@ const Index = () => {
       />
       <BulkBar
         count={picked.length}
+        runningCount={runningCount}
         progress={bulk}
         onStart={() => startMany(picked)}
+        onStopAll={() => stopMany(picked.length ? picked : undefined)}
         onClear={() => setPicked([])}
       />
 

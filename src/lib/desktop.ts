@@ -80,6 +80,7 @@ interface MbaBridge {
   startProfiles: (list: Profile[]) => Promise<BulkStartResult>;
   onStartProgress: (cb: (p: { done: number; total: number }) => void) => void;
   stopProfile: (id: string) => Promise<{ ok: boolean }>;
+  stopProfiles: (ids?: string[]) => Promise<{ ok: boolean; stopped: number; total: number }>;
   auditProfile: (payload: { id: string; site: string }) => Promise<AuditReport>;
 
   listCookies: (profileId: string) => Promise<{
