@@ -10,7 +10,8 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const isDesktop =
-  typeof window !== "undefined" && window.location.protocol === "file:";
+  typeof window !== "undefined" &&
+  !/^https?:$/.test(window.location.protocol);
 
 const Router = isDesktop ? HashRouter : BrowserRouter;
 
