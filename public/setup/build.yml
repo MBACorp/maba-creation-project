@@ -1,0 +1,110 @@
+name: Сборка и публикация MBA
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+      - master
+    # Ветку собираем целиком: приложение лежит в корне репозитория
+
+permissions:
+  contents: write
+
+jobs:
+  # Смотрим номер версии в package.json: если такого выпуска ещё нет — делаем
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.check.outputs.tag }}
+      fresh: ${{ steps.check.outputs.fresh }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Проверка версии
+        id: check
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+          if git ls-remote --tags origin | grep -q "refs/tags/$TAG$"; then
+            echo "Выпуск $TAG уже существует — новый не нужен"
+            echo "fresh=no" >> $GITHUB_OUTPUT
+          else
+            echo "Версия $TAG ещё не выпускалась — готовим выпуск"
+            echo "fresh=yes" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+            command: npm run build:win
+          - os: macos-latest
+            name: macos
+            command: npm run build:mac
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Установка зависимостей и ядра браузера
+        run: npm install
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: '0'
+
+      - name: Проверка, что ядро браузера на месте
+        shell: bash
+        run: |
+          if [ -d "node_modules/patchright-core/.local-browsers" ] || [ -d "node_modules/patchright/.local-browsers" ]; then
+            echo "Ядро браузера найдено"
+          else
+            echo "ВНИМАНИЕ: ядро браузера не найдено в node_modules"
+            find node_modules -maxdepth 3 -name "*chromium*" -type d | head -5
+          fi
+
+      - name: Сборка установщика
+        run: ${{ matrix.command }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          PLAYWRIGHT_BROWSERS_PATH: '0'
+
+      - name: Что получилось
+        shell: bash
+        run: ls -lh dist/*.exe dist/*.dmg 2>/dev/null || ls -lh dist/
+
+      - name: Готовые файлы
+        uses: actions/upload-artifact@v4
+        with:
+          name: MBA-installer-${{ matrix.name }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+          if-no-files-found: error
+
+      # Выкладываем сборки в выпуск — отсюда приложение берёт обновления
+      - name: Публикация выпуска
+        if: startsWith(github.ref, 'refs/tags/v') || needs.version.outputs.fresh == 'yes'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: MBA ${{ needs.version.outputs.tag }}
+          files: |
+            dist/*.exe
+            dist/*.dmg
+          generate_release_notes: true
+          fail_on_unmatched_files: false
