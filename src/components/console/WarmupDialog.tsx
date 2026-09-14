@@ -4,6 +4,8 @@ import Icon from '@/components/ui/icon';
 import { Profile } from '@/data/console';
 import { bridge } from '@/lib/desktop';
 import { toast } from 'sonner';
+import { useWarmupSets } from '@/hooks/useWarmupSets';
+import { cn } from '@/lib/utils';
 
 interface WarmupDialogProps {
   profile: Profile | null;
@@ -27,6 +29,11 @@ const WarmupDialog = ({ profile, onOpenChange }: WarmupDialogProps) => {
   const [sites, setSites] = useState('');
   const [minutes, setMinutes] = useState(20);
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [activeSet, setActiveSet] = useState<string | null>(null);
+  const [saveName, setSaveName] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const { sets, saveSet, deleteSet } = useWarmupSets();
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -103,13 +110,132 @@ const WarmupDialog = ({ profile, onOpenChange }: WarmupDialogProps) => {
 
         <div className="space-y-2">
           <label className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-            Сайты для обхода
+            Готовые наборы
           </label>
+
+          <div className="flex flex-wrap gap-1.5">
+            {sets.map((s) => (
+              <span
+                key={s.id}
+                className={cn(
+                  'group flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[12.5px] transition-colors',
+                  activeSet === s.id
+                    ? 'border-primary/50 bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:border-primary/40',
+                )}
+              >
+                <button
+                  onClick={() => {
+                    setSites(s.sites);
+                    setActiveSet(s.id);
+                  }}
+                  disabled={busy}
+                  className="disabled:opacity-60"
+                >
+                  {s.name}
+                </button>
+                <button
+                  onClick={() => {
+                    deleteSet(s.id);
+                    if (activeSet === s.id) setActiveSet(null);
+                    toast(`Набор «${s.name}» удалён`);
+                  }}
+                  disabled={busy}
+                  title="Удалить набор"
+                  className="opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive disabled:opacity-0"
+                >
+                  <Icon name="X" size={11} />
+                </button>
+              </span>
+            ))}
+
+            {sets.length === 0 && (
+              <span className="text-[12px] text-dot">Пока нет сохранённых наборов</span>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
+              Сайты для обхода
+            </label>
+
+            {!saving && !busy && count > 0 && (
+              <button
+                onClick={() => {
+                  const current = sets.find((s) => s.id === activeSet);
+                  setSaveName(current ? current.name : '');
+                  setSaving(true);
+                }}
+                className="flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-primary"
+              >
+                <Icon name="Save" fallback="Plus" size={12} />
+                Сохранить набор
+              </button>
+            )}
+          </div>
+
+          {saving && (
+            <div className="flex gap-1.5">
+              <input
+                autoFocus
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const res = saveSet(saveName, sites);
+                    if (res) {
+                      toast(
+                        res === 'updated'
+                          ? `Набор «${saveName.trim()}» обновлён`
+                          : `Набор «${saveName.trim()}» сохранён`,
+                      );
+                      setSaving(false);
+                      setSaveName('');
+                    }
+                  }
+                  if (e.key === 'Escape') setSaving(false);
+                }}
+                placeholder="Название набора"
+                className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-[13px] text-foreground outline-none transition-colors focus:border-primary/50"
+              />
+              <button
+                onClick={() => {
+                  const res = saveSet(saveName, sites);
+                  if (!res) {
+                    toast.error('Введите название набора');
+                    return;
+                  }
+                  toast(
+                    res === 'updated'
+                      ? `Набор «${saveName.trim()}» обновлён`
+                      : `Набор «${saveName.trim()}» сохранён`,
+                  );
+                  setSaving(false);
+                  setSaveName('');
+                }}
+                className="rounded-lg bg-primary px-3 py-1.5 text-[13px] font-semibold text-background transition-opacity hover:opacity-90"
+              >
+                Сохранить
+              </button>
+              <button
+                onClick={() => setSaving(false)}
+                className="rounded-lg border border-border px-2.5 py-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Отмена
+              </button>
+            </div>
+          )}
+
           <textarea
             value={sites}
-            onChange={(e) => setSites(e.target.value)}
+            onChange={(e) => {
+              setSites(e.target.value);
+              setActiveSet(null);
+            }}
             disabled={busy}
-            rows={7}
+            rows={6}
             spellCheck={false}
             placeholder={'ozon.ru\navito.ru'}
             className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 font-mono text-[13px] text-foreground outline-none transition-colors focus:border-primary/50 disabled:opacity-60"
