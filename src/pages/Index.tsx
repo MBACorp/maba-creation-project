@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import TopBar from '@/components/console/TopBar';
 import BulkBar from '@/components/console/BulkBar';
+import WarmupDialog from '@/components/console/WarmupDialog';
 import Sidebar from '@/components/console/Sidebar';
 import Toolbar, { FilterId } from '@/components/console/Toolbar';
 import ProfileTable from '@/components/console/ProfileTable';
@@ -31,6 +32,7 @@ const LIMIT = 10;
 
 const Index = () => {
   const [picked, setPicked] = useState<string[]>([]);
+  const [warmup, setWarmup] = useState<Profile | null>(null);
   const syncGeoRef = useRef<((list: ProxyRecord[]) => void) | null>(null);
   const handleChecked = useCallback((list: ProxyRecord[]) => {
     syncGeoRef.current?.(list);
@@ -272,7 +274,13 @@ const Index = () => {
         onClear={() => setPicked([])}
       />
 
+      <WarmupDialog profile={warmup} onOpenChange={(v) => !v && setWarmup(null)} />
+
       <ProfileDetails
+        onWarmup={(p) => {
+          setDetails(null);
+          setWarmup(p);
+        }}
         profile={activeDetails}
         proxies={proxies}
         onOpenChange={(v) => !v && setDetails(null)}

@@ -26,9 +26,11 @@ interface ProfileDetailsProps {
   onLabel: (id: string, labelId?: string) => void;
   onAddNote: (id: string, text: string, labelId?: string) => void;
   onDeleteNote: (id: string, noteId: string) => void;
+  onWarmup?: (p: Profile) => void;
 }
 
 const ProfileDetails = ({
+  onWarmup,
   profile,
   proxies,
   folders,
@@ -171,6 +173,16 @@ const ProfileDetails = ({
               <Icon name={profile.status === 'running' ? 'Square' : 'Play'} size={15} />
               {profile.status === 'running' ? 'Остановить профиль' : 'Запустить профиль'}
             </button>
+
+            {onWarmup && (
+              <button
+                onClick={() => onWarmup(profile)}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-[13px] font-semibold text-foreground transition-colors hover:border-primary/45 hover:text-primary"
+              >
+                <Icon name="Flame" fallback="Play" size={15} />
+                Прогреть куки
+              </button>
+            )}
           </>
         )}
       </SheetContent>

@@ -42,6 +42,17 @@ export interface BulkStartResult {
   results?: { id: string; ok: boolean; error?: string; alreadyRunning?: boolean }[];
 }
 
+export interface WarmupResult {
+  ok: boolean;
+  error?: string;
+  visited?: number;
+  sites?: string[];
+  gained?: number;
+  cookiesBefore?: number;
+  cookiesAfter?: number;
+  stopped?: boolean;
+}
+
 export interface AuditCheck {
   name: string;
   title: string;
@@ -81,6 +92,21 @@ interface MbaBridge {
   onStartProgress: (cb: (p: { done: number; total: number }) => void) => void;
   stopProfile: (id: string) => Promise<{ ok: boolean }>;
   stopProfiles: (ids?: string[]) => Promise<{ ok: boolean; stopped: number; total: number }>;
+  warmupProfile: (payload: {
+    id: string;
+    sites: string;
+    minutes: number;
+  }) => Promise<WarmupResult>;
+  stopWarmup: (id: string) => Promise<{ ok: boolean }>;
+  onWarmupProgress: (
+    cb: (p: {
+      site?: string;
+      visited?: number;
+      total?: number;
+      leftMs?: number;
+      done?: boolean;
+    }) => void,
+  ) => void;
   auditProfile: (payload: { id: string; site: string }) => Promise<AuditReport>;
 
   listCookies: (profileId: string) => Promise<{
