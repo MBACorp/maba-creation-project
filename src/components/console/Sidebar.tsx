@@ -50,7 +50,7 @@ const Sidebar = ({
             <div className="font-head text-[17px] font-extrabold leading-none tracking-tight text-foreground">
               MBA
             </div>
-            <div className="truncate text-[11px] text-muted-foreground">aleksandrgricov123</div>
+            <div className="truncate text-[11px] text-muted-foreground">Email</div>
           </div>
           <button
             onClick={onClose}
